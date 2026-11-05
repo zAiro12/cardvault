@@ -8,8 +8,8 @@ const preferences = usePreferencesStore()
     <aside class="sidebar">
       <div class="brand"><span class="brand-mark">CV</span><span>CardVault</span></div>
       <div class="nav-label">GESTIONE</div>
-      <RouterLink class="nav-item active" to="/"><i class="pi pi-th-large"></i> Dashboard</RouterLink>
-      <a class="nav-item muted"><i class="pi pi-clone"></i> Inventario <span class="soon">Soon</span></a>
+      <RouterLink class="nav-item" to="/" exact-active-class="active"><i class="pi pi-th-large"></i> Dashboard</RouterLink>
+      <RouterLink class="nav-item" to="/inventory" active-class="active"><i class="pi pi-clone"></i> Inventario</RouterLink>
       <a class="nav-item muted"><i class="pi pi-search"></i> Scanner <span class="soon">Soon</span></a>
       <a class="nav-item muted"><i class="pi pi-map-marker"></i> Posizioni <span class="soon">Soon</span></a>
       <a class="nav-item muted"><i class="pi pi-bookmark"></i> Prenotazioni <span class="soon">Soon</span></a>
