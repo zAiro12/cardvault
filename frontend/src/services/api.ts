@@ -81,3 +81,8 @@ export async function updateReservationStatus(inventoryItemId: string, reservati
   const result = await request<{ data: ReservationRecord }>(`/inventory/${inventoryItemId}/reservations/${reservationId}`, { method: 'PATCH', body: JSON.stringify({ status }) })
   return result.data
 }
+
+export async function updateInventory(id: string, input: { quantity?: number; condition?: string; purchasePrice?: number | null; marketPrice?: number | null; location?: string | null; notes?: string | null }): Promise<InventoryRecord> {
+  const result = await request<{ data: InventoryRecord }>(`/inventory/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
+  return result.data
+}
