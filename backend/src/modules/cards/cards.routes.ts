@@ -105,20 +105,19 @@ cardsRouter.get('/market-price', async (req, res, next) => {
     const blueprint = blueprints.find(item => item.scryfall_id === scryfallId)
     if (!blueprint) return res.json({ data: { marketPrice: null, reason: 'Stampa non presente nel catalogo CardTrader' } })
 
+    // CardTrader applica nativamente i filtri lingua e foil sull'endpoint marketplace.
     const params = new URLSearchParams({ blueprint_id: String(blueprint.id), language, foil: String(foil) })
     const marketResponse = await fetch(`https://api.cardtrader.com/api/v2/marketplace/products?${params}`, { headers, signal: AbortSignal.timeout(12000) })
     if (!marketResponse.ok) throw new Error(`CardTrader marketplace: ${marketResponse.status}`)
-    const market = await marketResponse.json() as Record<string, Array<{ price?: { cents?: number; currency?: string }; properties_hash?: Record<string, unknown>; quantity?: number }>>
+    const market = await marketResponse.json() as Record<string, Array<{ price?: { cents?: number; currency?: string }; quantity?: number }>>
     const products = market[String(blueprint.id)] ?? []
-    const languageNames: Record<string, string[]> = { it: ['Italian', 'Italiano', 'it'], en: ['English', 'Inglese', 'en'], fr: ['French', 'Francese', 'fr'], de: ['German', 'Tedesco', 'de'], es: ['Spanish', 'Spagnolo', 'es'], ja: ['Japanese', 'Giapponese', 'ja'] }
-    const langValues = languageNames[language] ?? [language]
-    const matching = products.filter(product => {
-      const props = product.properties_hash ?? {}
-      const productLanguage = String(props.mtg_language ?? props.language ?? '').toLowerCase()
-      const productFoil = props.mtg_foil ?? props.foil
-      return langValues.some(value => productLanguage === value.toLowerCase()) && String(productFoil) === String(foil) && (product.quantity ?? 0) > 0 && product.price?.currency === 'EUR' && typeof product.price.cents === 'number'
-    })
-    const cheapest = matching.reduce<number | null>((min, product) => min === null ? product.price!.cents! : Math.min(min, product.price!.cents!), null)
+    // L'endpoint raggruppa le offerte per blueprint e ritorna le più economiche.
+    // Usiamo i prezzi EUR validi e disponibili, senza filtrare properties_hash
+    // (il filtro lingua/foil è già stato passato nella query).
+    const prices = products
+      .filter(product => (product.quantity ?? 0) > 0 && product.price?.currency === 'EUR' && typeof product.price.cents === 'number')
+      .map(product => product.price!.cents!)
+    const cheapest = prices.length ? Math.min(...prices) : null
     return res.json({ data: { marketPrice: cheapest === null ? null : (cheapest / 100).toFixed(2), blueprintId: blueprint.id } })
   } catch (error) { return next(error) }
 })
