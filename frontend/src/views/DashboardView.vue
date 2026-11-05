@@ -18,7 +18,7 @@ const metrics = [
 <template>
   <section class="page-content">
     <div class="page-heading">
-      <div><p class="eyebrow">PANORAMICA</p><h1>Il tuo magazzino</h1><p class="subtitle">Tieni sotto controllo la tua collezione, in un unico posto.</p></div>
+      <div><p class="eyebrow">PANORAMICA</p><h1>Bentornato! 👋</h1><p class="subtitle">Ecco la situazione del tuo magazzino.</p></div>
       <RouterLink class="primary-button" to="/inventory"><i class="pi pi-plus"></i> Aggiungi carta</RouterLink>
     </div>
     <div class="metric-grid">
