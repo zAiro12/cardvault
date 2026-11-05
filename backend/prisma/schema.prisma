@@ -1,6 +1,5 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
@@ -16,6 +15,8 @@ enum Game {
   YU_GI_OH
   LORCANA
   OTHER
+
+  @@schema("cardtrader")
 }
 
 enum ReservationStatus {
@@ -23,6 +24,8 @@ enum ReservationStatus {
   CONFIRMED
   SOLD
   CANCELLED
+
+  @@schema("cardtrader")
 }
 
 enum MovementType {
@@ -32,6 +35,8 @@ enum MovementType {
   ADJUSTMENT
   RESERVATION
   RELEASE
+
+  @@schema("cardtrader")
 }
 
 model User {
@@ -40,6 +45,8 @@ model User {
   createdAt DateTime        @default(now())
   inventory InventoryItem[]
   locations Location[]
+
+  @@schema("cardtrader")
 }
 
 model Card {
@@ -59,6 +66,8 @@ model Card {
 
   @@index([game, name])
   @@index([cardTraderBlueprintId])
+
+  @@schema("cardtrader")
 }
 
 model Location {
@@ -74,6 +83,8 @@ model Location {
   inventory InventoryItem[]
 
   @@index([userId, parentId])
+
+  @@schema("cardtrader")
 }
 
 model InventoryItem {
@@ -96,6 +107,8 @@ model InventoryItem {
 
   @@index([userId, cardId])
   @@index([locationId])
+
+  @@schema("cardtrader")
 }
 
 model Reservation {
@@ -109,6 +122,8 @@ model Reservation {
   inventoryItem    InventoryItem     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   @@index([inventoryItemId, status])
+
+  @@schema("cardtrader")
 }
 
 model InventoryMovement {
@@ -121,6 +136,8 @@ model InventoryMovement {
   inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   @@index([inventoryItemId, createdAt])
+
+  @@schema("cardtrader")
 }
 
 model PriceHistory {
@@ -133,6 +150,8 @@ model PriceHistory {
   card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@index([cardId, recordedAt])
+
+  @@schema("cardtrader")
 }
 
 model SyncJob {
@@ -143,6 +162,8 @@ model SyncJob {
   finishedAt  DateTime?
   recordsRead Int      @default(0)
   error       String?
+
+  @@schema("cardtrader")
 }
 
 model Setting {
@@ -150,6 +171,8 @@ model Setting {
   key       String   @unique
   value     Json
   updatedAt DateTime @updatedAt
+
+  @@schema("cardtrader")
 }
 
 model AuditLog {
@@ -162,4 +185,6 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
+
+  @@schema("cardtrader")
 }
