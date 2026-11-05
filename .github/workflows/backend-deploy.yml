@@ -1,0 +1,12 @@
+name: Vercel backend deploy
+
+on:
+  workflow_dispatch:
+  # Vercel Git integration can deploy automatically on pushes.
+  # This workflow is intentionally manual until Vercel project secrets are configured.
+
+jobs:
+  instructions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Connect the repository to Vercel and configure backend environment variables in the Vercel dashboard."

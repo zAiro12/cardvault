@@ -1,0 +1,13 @@
+{
+  "name": "cardvault",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Webapp multi-TCG per inventario, posizioni, prenotazioni e prezzi CardTrader.",
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "npm run dev --workspace frontend",
+    "dev:api": "npm run dev --workspace backend",
+    "build": "npm run build --workspace frontend && npm run build --workspace backend",
+    "typecheck": "npm run typecheck --workspace frontend && npm run typecheck --workspace backend"
+  }
+}
