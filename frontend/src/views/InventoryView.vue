@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { addInventory, autocompleteCards, createCard, createReservation as apiCreateReservation, getCardTraderMarketPrice, getInventory, updateReservationStatus, type CardSuggestion, type Game, type InventoryRecord } from '../services/api'
+import { addInventory, autocompleteCards, createCard, createReservation as apiCreateReservation, getCardTraderMarketPrice, getInventory, updateInventory, updateReservationStatus, type CardSuggestion, type Game, type InventoryRecord } from '../services/api'
 
 const rows = ref<InventoryRecord[]>([])
 const loading = ref(true)
@@ -10,6 +10,9 @@ const success = ref('')
 const search = ref('')
 const showForm = ref(false)
 const reservingRow = ref<InventoryRecord | null>(null)
+const editingRow = ref<InventoryRecord | null>(null)
+const editSaving = ref(false)
+const editForm = ref({ quantity: 1, condition: 'NM', purchasePrice: '', marketPrice: '', location: '', notes: '' })
 const reservationCustomer = ref('')
 const reservationQuantity = ref(1)
 const reservationSaving = ref(false)
@@ -76,6 +79,8 @@ async function save() {
   } catch (e) { error.value = e instanceof Error ? e.message : 'Errore durante il salvataggio' }
   finally { saving.value = false }
 }
+function startEdit(row: InventoryRecord) { editingRow.value = row; editForm.value = { quantity: row.quantity, condition: row.condition, purchasePrice: row.purchasePrice == null ? '' : String(row.purchasePrice), marketPrice: row.marketPrice == null ? '' : String(row.marketPrice), location: row.location?.name || '', notes: row.notes || '' }; error.value = '' }
+async function saveEdit() { if (!editingRow.value) return; editSaving.value = true; error.value = ''; success.value = ''; try { await updateInventory(editingRow.value.id, { quantity: Number(editForm.value.quantity), condition: editForm.value.condition, purchasePrice: editForm.value.purchasePrice === '' ? null : Number(editForm.value.purchasePrice), marketPrice: editForm.value.marketPrice === '' ? null : Number(editForm.value.marketPrice), location: editForm.value.location.trim() || null, notes: editForm.value.notes.trim() || null }); editingRow.value = null; success.value = 'Item di magazzino aggiornato.'; await load() } catch (e) { error.value = e instanceof Error ? e.message : 'Errore durante la modifica' } finally { editSaving.value = false } }
 async function reserve() {
   if (!reservingRow.value || !reservationCustomer.value.trim()) { error.value = 'Inserisci il nome del cliente.'; return }
   reservationSaving.value = true; error.value = ''
