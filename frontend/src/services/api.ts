@@ -16,3 +16,45 @@ export async function getHealth(): Promise<{ status: string; service: string }> 
   if (!response.ok) throw new Error(`API error: ${response.status}`)
   return response.json() as Promise<{ status: string; service: string }>
 }
+
+export type Game = 'MAGIC' | 'POKEMON' | 'YU_GI_OH' | 'LORCANA' | 'OTHER'
+export type CardRecord = { id: string; game: Game; name: string; setName?: string | null; collectorNumber?: string | null; language: string; foil: boolean; variant?: string | null }
+export type InventoryRecord = { id: string; quantity: number; condition: string; purchasePrice?: string | number | null; marketPrice?: string | number | null; notes?: string | null; card: CardRecord; location?: { name: string } | null; reservations?: { quantity: number; status: string; customer: string }[] }
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(apiUrl(path), {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  })
+  if (!response.ok) {
+    let message = `Errore API ${response.status}`
+    try { const body = await response.json(); message = body.error || message } catch { /* response may be empty */ }
+    throw new Error(message)
+  }
+  if (response.status === 204) return undefined as T
+  return response.json() as Promise<T>
+}
+
+export async function getCards(): Promise<CardRecord[]> {
+  const result = await request<{ data: CardRecord[] }>('/cards')
+  return result.data
+}
+
+export async function getInventory(): Promise<InventoryRecord[]> {
+  const result = await request<{ data: InventoryRecord[] }>('/inventory')
+  return result.data
+}
+
+export async function createCard(input: Omit<CardRecord, 'id'>): Promise<CardRecord> {
+  const result = await request<{ data: CardRecord }>('/cards', { method: 'POST', body: JSON.stringify(input) })
+  return result.data
+}
+
+export async function addInventory(input: { cardId: string; quantity: number; condition: string; purchasePrice?: number; marketPrice?: number; location?: string; notes?: string }): Promise<InventoryRecord> {
+  const result = await request<{ data: InventoryRecord }>('/inventory', { method: 'POST', body: JSON.stringify(input) })
+  return result.data
+}
+
+export async function deleteInventory(id: string): Promise<void> {
+  await request<void>(`/inventory/${id}`, { method: 'DELETE' })
+}
