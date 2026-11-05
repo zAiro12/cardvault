@@ -27,7 +27,7 @@ jobs:
       - name: Build frontend
         run: npm run build --workspace frontend
         env:
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_URL: https://cardvault-lyart-sigma.vercel.app/api
       - uses: actions/upload-pages-artifact@v3
         with:
           path: frontend/dist
