@@ -3,6 +3,7 @@ import cors from 'cors'
 import { healthRouter } from './modules/health/health.routes.js'
 import { cardsRouter } from './modules/cards/cards.routes.js'
 import { cardTraderRouter } from './modules/cardtrader/cardtrader.routes.js'
+import { inventoryRouter } from './modules/inventory/inventory.routes.js'
 
 export const app = express()
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true }))
@@ -37,6 +38,7 @@ app.get('/', (_req, res) => {
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'cardvault-api', version: '0.1.0' }))
 app.use('/api/health', healthRouter)
 app.use('/api/cards', cardsRouter)
+app.use('/api/inventory', inventoryRouter)
 app.use('/api/cardtrader', cardTraderRouter)
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }))
 
