@@ -66,3 +66,8 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 
 /* Keep the full labeled navigation on iPad-sized canvases; collapse only narrow phones. */
 @media(min-width:601px) and (max-width:850px){.sidebar{width:205px;padding:22px 12px}.brand{justify-content:flex-start;margin:0 7px 38px}.brand>span:last-child,.nav-label,.nav-item span,.sidebar-bottom>div:last-child{display:block}.nav-label{font-size:9px}.nav-item{justify-content:flex-start;padding:11px 10px;font-size:12px}.nav-item.active{font-size:12px}.nav-item i{font-size:17px}.sidebar-bottom{justify-content:flex-start;padding:11px 6px 2px}.dashboard-concept{padding:24px 18px}.dashboard-concept .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.quick-action-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.quick-action{font-size:10px;padding:10px 5px}.topbar{padding:0 18px}}
+
+.dashboard-concept .metric-note{font-size:10px;color:var(--muted);margin-top:5px}
+.dashboard-error{border:1px solid #9d4c62;background:#3a202b;color:#ffc4d0;padding:10px 13px;border-radius:10px;font-size:12px;margin:0 0 14px}
+.dashboard-concept .recent-heading a{color:#b59aff;font-size:12px;display:flex;align-items:center;gap:7px}
+.dashboard-concept .metric-value{overflow-wrap:anywhere}
