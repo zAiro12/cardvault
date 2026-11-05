@@ -15,6 +15,8 @@ const searchingCards = ref(false)
 const selectedPrint = ref<CardSuggestion | null>(null)
 let autocompleteTimer: ReturnType<typeof setTimeout> | undefined
 watch(() => [form.value.name, form.value.game] as const, ([name, game]) => {
+  // Quando il nome viene impostato cliccando un risultato, non riaprire il menu.
+  if (selectedPrint.value && name === selectedPrint.value.name) return
   selectedPrint.value = null
   suggestions.value = []
   if (autocompleteTimer) clearTimeout(autocompleteTimer)
