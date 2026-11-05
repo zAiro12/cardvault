@@ -58,3 +58,10 @@ export async function addInventory(input: { cardId: string; quantity: number; co
 export async function deleteInventory(id: string): Promise<void> {
   await request<void>(`/inventory/${id}`, { method: 'DELETE' })
 }
+
+export type CardSuggestion = { scryfallId: string; name: string; setName: string; setCode: string; collectorNumber: string; language: string; foil: boolean; imageUrl: string | null; marketPrice: string | null }
+
+export async function autocompleteCards(query: string, game: Game): Promise<CardSuggestion[]> {
+  const result = await request<{ data: CardSuggestion[] }>(`/cards/autocomplete?q=${encodeURIComponent(query)}&game=${encodeURIComponent(game)}`)
+  return result.data
+}
