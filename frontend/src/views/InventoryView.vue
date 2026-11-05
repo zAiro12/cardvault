@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { addInventory, autocompleteCards, createCard, getInventory, type CardSuggestion, type Game, type InventoryRecord } from '../services/api'
+import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, getInventory, type CardSuggestion, type Game, type InventoryRecord } from '../services/api'
 
 const rows = ref<InventoryRecord[]>([])
 const loading = ref(true)
@@ -28,16 +28,21 @@ watch(() => [form.value.name, form.value.game] as const, ([name, game]) => {
     finally { searchingCards.value = false }
   }, 350)
 })
-function selectPrint(print: CardSuggestion) {
+async function selectPrint(print: CardSuggestion) {
   selectedPrint.value = print
   form.value.name = print.name
   form.value.setName = print.setName
   form.value.collectorNumber = print.collectorNumber
   form.value.language = print.language
   form.value.foil = print.foil
-  if (print.marketPrice !== null) form.value.marketPrice = print.marketPrice
+  form.value.marketPrice = ''
   suggestions.value = []
   error.value = ''
+  try {
+    const price = await getCardTraderMarketPrice({ scryfallId: print.scryfallId, setCode: print.setCode, language: print.language, foil: print.foil })
+    // Avoid overwriting the price if user has already selected a different print.
+    if (selectedPrint.value?.scryfallId === print.scryfallId && price !== null) form.value.marketPrice = price
+  } catch (e) { error.value = e instanceof Error ? e.message : 'Prezzo CardTrader non recuperabile' }
 }
 
 
