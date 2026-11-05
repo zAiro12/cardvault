@@ -82,6 +82,47 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
+cardsRouter.get('/market-price', async (req, res, next) => {
+  const scryfallId = typeof req.query.scryfallId === 'string' ? req.query.scryfallId : ''
+  const setCode = typeof req.query.setCode === 'string' ? req.query.setCode.toLowerCase() : ''
+  const language = typeof req.query.language === 'string' ? req.query.language.toLowerCase() : 'it'
+  const foil = req.query.foil === 'true'
+  const token = process.env.CARDTRADER_API_TOKEN
+  if (!scryfallId || !setCode) return res.status(400).json({ error: 'scryfallId e setCode sono richiesti.' })
+  if (!token) return res.status(503).json({ error: 'CARDTRADER_API_TOKEN non configurato su Vercel.' })
+
+  try {
+    const headers = { Authorization: `Bearer ${token}`, Accept: 'application/json' }
+    const expansionsResponse = await fetch('https://api.cardtrader.com/api/v2/expansions', { headers, signal: AbortSignal.timeout(12000) })
+    if (!expansionsResponse.ok) throw new Error(`CardTrader expansions: ${expansionsResponse.status}`)
+    const expansions = await expansionsResponse.json() as Array<{ id: number; game_id: number; code: string; name: string }>
+    const expansion = expansions.find(item => item.game_id === 1 && item.code.toLowerCase() === setCode)
+    if (!expansion) return res.json({ data: { marketPrice: null, reason: 'Espansione non mappata su CardTrader' } })
+
+    const blueprintsResponse = await fetch(`https://api.cardtrader.com/api/v2/blueprints/export?expansion_id=${expansion.id}`, { headers, signal: AbortSignal.timeout(15000) })
+    if (!blueprintsResponse.ok) throw new Error(`CardTrader blueprints: ${blueprintsResponse.status}`)
+    const blueprints = await blueprintsResponse.json() as Array<{ id: number; scryfall_id?: string }>
+    const blueprint = blueprints.find(item => item.scryfall_id === scryfallId)
+    if (!blueprint) return res.json({ data: { marketPrice: null, reason: 'Stampa non presente nel catalogo CardTrader' } })
+
+    const params = new URLSearchParams({ blueprint_id: String(blueprint.id), language, foil: String(foil) })
+    const marketResponse = await fetch(`https://api.cardtrader.com/api/v2/marketplace/products?${params}`, { headers, signal: AbortSignal.timeout(12000) })
+    if (!marketResponse.ok) throw new Error(`CardTrader marketplace: ${marketResponse.status}`)
+    const market = await marketResponse.json() as Record<string, Array<{ price?: { cents?: number; currency?: string }; properties_hash?: Record<string, unknown>; quantity?: number }>>
+    const products = market[String(blueprint.id)] ?? []
+    const languageNames: Record<string, string[]> = { it: ['Italian', 'Italiano', 'it'], en: ['English', 'Inglese', 'en'], fr: ['French', 'Francese', 'fr'], de: ['German', 'Tedesco', 'de'], es: ['Spanish', 'Spagnolo', 'es'], ja: ['Japanese', 'Giapponese', 'ja'] }
+    const langValues = languageNames[language] ?? [language]
+    const matching = products.filter(product => {
+      const props = product.properties_hash ?? {}
+      const productLanguage = String(props.mtg_language ?? props.language ?? '').toLowerCase()
+      const productFoil = props.mtg_foil ?? props.foil
+      return langValues.some(value => productLanguage === value.toLowerCase()) && String(productFoil) === String(foil) && (product.quantity ?? 0) > 0 && product.price?.currency === 'EUR' && typeof product.price.cents === 'number'
+    })
+    const cheapest = matching.reduce<number | null>((min, product) => min === null ? product.price!.cents! : Math.min(min, product.price!.cents!), null)
+    return res.json({ data: { marketPrice: cheapest === null ? null : (cheapest / 100).toFixed(2), blueprintId: blueprint.id } })
+  } catch (error) { return next(error) }
+})
+
 cardsRouter.get('/:id', async (req, res, next) => {
   try {
     const data = await prisma.card.findUnique({ where: { id: req.params.id }, include: { inventory: true, priceHistory: { orderBy: { recordedAt: 'desc' }, take: 10 } } })
