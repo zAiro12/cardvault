@@ -19,7 +19,7 @@ const metrics = [
   <section class="page-content">
     <div class="page-heading">
       <div><p class="eyebrow">PANORAMICA</p><h1>Il tuo magazzino</h1><p class="subtitle">Tieni sotto controllo la tua collezione, in un unico posto.</p></div>
-      <button class="primary-button" disabled><i class="pi pi-plus"></i> Aggiungi carta <span class="soon">Soon</span></button>
+      <RouterLink class="primary-button" to="/inventory"><i class="pi pi-plus"></i> Aggiungi carta</RouterLink>
     </div>
     <div class="metric-grid">
       <article v-for="metric in metrics" :key="metric.label" class="metric-card">
