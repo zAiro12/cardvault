@@ -121,7 +121,19 @@ inventoryRouter.patch('/:id/reservations/:reservationId', async (req, res, next)
     if (!item) return res.status(404).json({ error: 'Inventory item not found' })
     const reservation = await prisma.reservation.findFirst({ where: { id: req.params.reservationId, inventoryItemId: item.id } })
     if (!reservation) return res.status(404).json({ error: 'Reservation not found' })
-    const updated = await prisma.reservation.update({ where: { id: reservation.id }, data: { status: statusInput.data.status } })
+    if (reservation.status === 'SOLD' || reservation.status === 'CANCELLED') return res.status(409).json({ error: 'Reservation is already closed' })
+    const target = statusInput.data.status
+    if (target === 'SOLD') {
+      const updated = await prisma.$transaction(async tx => {
+        const current = await tx.inventoryItem.findUnique({ where: { id: item.id } })
+        if (!current || current.quantity < reservation.quantity) throw new Error('Stock quantity is insufficient to complete sale')
+        await tx.inventoryItem.update({ where: { id: item.id }, data: { quantity: { decrement: reservation.quantity } } })
+        await tx.inventoryMovement.create({ data: { inventoryItemId: item.id, quantityDelta: -reservation.quantity, type: 'OUT', note: `Reservation sold to ${reservation.customer}` } })
+        return tx.reservation.update({ where: { id: reservation.id }, data: { status: 'SOLD' } })
+      })
+      return res.json({ data: updated })
+    }
+    const updated = await prisma.reservation.update({ where: { id: reservation.id }, data: { status: target } })
     return res.json({ data: updated })
   } catch (error) { return next(error) }
 })
