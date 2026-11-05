@@ -143,7 +143,7 @@ cardsRouter.get('/image', async (req, res, next) => {
     url.searchParams.set('lang', language)
     const response = await fetch(url, { headers: { 'User-Agent': 'CardVault/0.1 (inventory app)', 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000) })
     if (!response.ok) return res.json({ data: { imageUrl: null } })
-    const card = await response.json() as { image_uris?: { normal?: string; large?: string }; card_faces?: Array<{ image_uris?: { normal?: string; large?: string }> }
+    const card = await response.json() as { image_uris?: { normal?: string; large?: string }; card_faces?: Array<{ image_uris?: { normal?: string; large?: string } }> }
     const imageUrl = card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.large ?? null
     return res.json({ data: { imageUrl } })
   } catch (error) { return next(error) }
