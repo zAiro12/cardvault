@@ -59,15 +59,15 @@ export async function deleteInventory(id: string): Promise<void> {
   await request<void>(`/inventory/${id}`, { method: 'DELETE' })
 }
 
-export type CardSuggestion = { scryfallId: string; name: string; setName: string; setCode: string; collectorNumber: string; language: string; foil: boolean; imageUrl: string | null; marketPrice: string | null }
+export type CardSuggestion = { scryfallId: string; oracleName: string; name: string; setName: string; setCode: string; collectorNumber: string; language: string; foil: boolean; imageUrl: string | null; marketPrice: string | null }
 
 export async function autocompleteCards(query: string, game: Game): Promise<CardSuggestion[]> {
   const result = await request<{ data: CardSuggestion[] }>(`/cards/autocomplete?q=${encodeURIComponent(query)}&game=${encodeURIComponent(game)}`)
   return result.data
 }
 
-export async function getCardTraderMarketPrice(input: { scryfallId: string; setCode: string; language: string; foil: boolean }): Promise<string | null> {
-  const query = new URLSearchParams({ scryfallId: input.scryfallId, setCode: input.setCode, language: input.language, foil: String(input.foil) })
+export async function getCardTraderMarketPrice(input: { scryfallId: string; cardName: string; setCode: string; language: string; foil: boolean }): Promise<string | null> {
+  const query = new URLSearchParams({ scryfallId: input.scryfallId, cardName: input.cardName, setCode: input.setCode, language: input.language, foil: String(input.foil) })
   const result = await request<{ data: { marketPrice: string | null; reason?: string } }>(`/cards/market-price?${query}`)
   return result.data.marketPrice
 }
