@@ -53,22 +53,23 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
         if (response.status === 404) return []
         throw new Error(`Scryfall responded ${response.status}`)
       }
-      const body = await response.json() as { data?: Array<{ id: string; name: string; set_name: string; set: string; collector_number: string; lang: string; foil: boolean; nonfoil: boolean; image_uris?: { small?: string }; prices?: { eur?: string | null; eur_foil?: string | null } }> }
+      const body = await response.json() as { data?: Array<{ id: string; name: string; set_name: string; set: string; collector_number: string; lang: string; printed_name?: string; foil: boolean; nonfoil: boolean; image_uris?: { small?: string }; prices?: { eur?: string | null; eur_foil?: string | null } }> }
       return body.data ?? []
     }
 
     const [englishNames, italianNames] = await Promise.all([search('en'), search('it')])
     const normalizedQuery = safeQuery.toLocaleLowerCase()
     const score = (cards: typeof englishNames) => cards.reduce((total, card) => {
-      const name = card.name.toLocaleLowerCase()
-      return total + (name === normalizedQuery ? 3 : name.startsWith(normalizedQuery) ? 2 : name.includes(normalizedQuery) ? 1 : 0)
+      const names = [card.name, card.printed_name].filter((name): name is string => Boolean(name)).map(name => name.toLocaleLowerCase())
+      const best = Math.max(0, ...names.map(name => name === normalizedQuery ? 3 : name.startsWith(normalizedQuery) ? 2 : name.includes(normalizedQuery) ? 1 : 0))
+      return total + best
     }, 0)
     // Scegli il catalogo linguistico il cui nome corrisponde meglio al testo digitato.
     // In caso di parità favorisci l'italiano, coerente con la lingua predefinita dell'app.
     const matchingNames = score(englishNames) > score(italianNames) ? englishNames : italianNames
     const data = matchingNames.slice(0, 30).map(card => ({
       scryfallId: card.id,
-      name: card.name,
+      name: card.lang === 'it' && card.printed_name ? card.printed_name : card.name,
       setName: card.set_name,
       setCode: card.set,
       collectorNumber: card.collector_number,
