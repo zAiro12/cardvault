@@ -39,7 +39,7 @@ async function selectPrint(print: CardSuggestion) {
   suggestions.value = []
   error.value = ''
   try {
-    const price = await getCardTraderMarketPrice({ scryfallId: print.scryfallId, setCode: print.setCode, language: print.language, foil: print.foil })
+    const price = await getCardTraderMarketPrice({ scryfallId: print.scryfallId, cardName: print.oracleName, setCode: print.setCode, language: print.language, foil: print.foil })
     // Avoid overwriting the price if user has already selected a different print.
     if (selectedPrint.value?.scryfallId === print.scryfallId && price !== null) form.value.marketPrice = price
   } catch (e) { error.value = e instanceof Error ? e.message : 'Prezzo CardTrader non recuperabile' }
