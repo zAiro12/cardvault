@@ -65,3 +65,9 @@ export async function autocompleteCards(query: string, game: Game): Promise<Card
   const result = await request<{ data: CardSuggestion[] }>(`/cards/autocomplete?q=${encodeURIComponent(query)}&game=${encodeURIComponent(game)}`)
   return result.data
 }
+
+export async function getCardTraderMarketPrice(input: { scryfallId: string; setCode: string; language: string; foil: boolean }): Promise<string | null> {
+  const query = new URLSearchParams({ scryfallId: input.scryfallId, setCode: input.setCode, language: input.language, foil: String(input.foil) })
+  const result = await request<{ data: { marketPrice: string | null; reason?: string } }>(`/cards/market-price?${query}`)
+  return result.data.marketPrice
+}
