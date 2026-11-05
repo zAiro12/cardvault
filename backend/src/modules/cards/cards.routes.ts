@@ -57,10 +57,16 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
       return body.data ?? []
     }
 
-    const [allNames, italianNames] = await Promise.all([search(), search('it')])
-    const unique = new Map<string, (typeof allNames)[number]>()
-    for (const card of [...italianNames, ...allNames]) unique.set(card.id, card)
-    const data = [...unique.values()].slice(0, 30).map(card => ({
+    const [englishNames, italianNames] = await Promise.all([search('en'), search('it')])
+    const normalizedQuery = safeQuery.toLocaleLowerCase()
+    const score = (cards: typeof englishNames) => cards.reduce((total, card) => {
+      const name = card.name.toLocaleLowerCase()
+      return total + (name === normalizedQuery ? 3 : name.startsWith(normalizedQuery) ? 2 : name.includes(normalizedQuery) ? 1 : 0)
+    }, 0)
+    // Scegli il catalogo linguistico il cui nome corrisponde meglio al testo digitato.
+    // In caso di parità favorisci l'italiano, coerente con la lingua predefinita dell'app.
+    const matchingNames = score(englishNames) > score(italianNames) ? englishNames : italianNames
+    const data = matchingNames.slice(0, 30).map(card => ({
       scryfallId: card.id,
       name: card.name,
       setName: card.set_name,
