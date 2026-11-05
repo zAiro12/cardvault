@@ -78,6 +78,11 @@ inventoryRouter.patch('/:id', async (req, res, next) => {
       }
     }
     const delta = quantity === undefined ? 0 : quantity - current.quantity
+    if (quantity !== undefined) {
+      const activeReservations = await prisma.reservation.findMany({ where: { inventoryItemId: current.id, status: { in: ['RESERVED', 'CONFIRMED'] } } })
+      const reservedQuantity = activeReservations.reduce((sum, reservation) => sum + reservation.quantity, 0)
+      if (quantity < reservedQuantity) return res.status(409).json({ error: `Quantity cannot be lower than active reservations (${reservedQuantity} copies)` })
+    }
     const item = await prisma.$transaction(async tx => {
       const updated = await tx.inventoryItem.update({ where: { id: current.id }, data: { ...fields, ...(quantity !== undefined ? { quantity } : {}), ...(locationId !== undefined ? { locationId } : {}) }, include: { card: true, location: true, reservations: true } })
       if (delta !== 0) await tx.inventoryMovement.create({ data: { inventoryItemId: current.id, quantityDelta: delta, type: delta > 0 ? 'IN' : 'OUT', note: 'Stock quantity updated' } })
