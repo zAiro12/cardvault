@@ -97,6 +97,8 @@ inventoryRouter.delete('/:id', async (req, res, next) => {
     const user = await owner()
     const item = await prisma.inventoryItem.findFirst({ where: { id: req.params.id, userId: user.id } })
     if (!item) return res.status(404).json({ error: 'Inventory item not found' })
+    const activeReservations = await prisma.reservation.count({ where: { inventoryItemId: item.id, status: { in: ['RESERVED', 'CONFIRMED'] } } })
+    if (activeReservations > 0) return res.status(409).json({ error: 'Impossibile eliminare: ci sono prenotazioni attive. Annullale o registrale come vendute prima.' })
     await prisma.inventoryItem.delete({ where: { id: item.id } })
     return res.status(204).send()
   } catch (error) { return next(error) }
