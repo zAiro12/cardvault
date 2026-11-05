@@ -133,6 +133,22 @@ cardsRouter.get('/market-price', async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
+cardsRouter.get('/image', async (req, res, next) => {
+  const name = typeof req.query.name === 'string' ? req.query.name.trim() : ''
+  const language = req.query.language === 'it' ? 'it' : 'en'
+  if (!name) return res.status(400).json({ error: 'Card name is required' })
+  try {
+    const url = new URL('https://api.scryfall.com/cards/named')
+    url.searchParams.set('exact', name)
+    url.searchParams.set('lang', language)
+    const response = await fetch(url, { headers: { 'User-Agent': 'CardVault/0.1 (inventory app)', 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000) })
+    if (!response.ok) return res.json({ data: { imageUrl: null } })
+    const card = await response.json() as { image_uris?: { normal?: string; large?: string }; card_faces?: Array<{ image_uris?: { normal?: string; large?: string }> }
+    const imageUrl = card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.large ?? null
+    return res.json({ data: { imageUrl } })
+  } catch (error) { return next(error) }
+})
+
 cardsRouter.get('/:id', async (req, res, next) => {
   try {
     const data = await prisma.card.findUnique({ where: { id: req.params.id }, include: { inventory: true, priceHistory: { orderBy: { recordedAt: 'desc' }, take: 10 } } })
