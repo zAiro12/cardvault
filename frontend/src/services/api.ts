@@ -19,7 +19,7 @@ export async function getHealth(): Promise<{ status: string; service: string }> 
 
 export type Game = 'MAGIC' | 'POKEMON' | 'YU_GI_OH' | 'LORCANA' | 'OTHER'
 export type CardRecord = { id: string; game: Game; name: string; setName?: string | null; collectorNumber?: string | null; language: string; foil: boolean; variant?: string | null }
-export type InventoryRecord = { id: string; quantity: number; condition: string; purchasePrice?: string | number | null; marketPrice?: string | number | null; notes?: string | null; card: CardRecord; location?: { name: string } | null; reservations?: { quantity: number; status: string; customer: string }[] }
+export type InventoryRecord = { id: string; quantity: number; condition: string; purchasePrice?: string | number | null; marketPrice?: string | number | null; notes?: string | null; card: CardRecord; location?: { name: string } | null; reservations?: { id: string; quantity: number; status: string; customer: string; reservedAt: string }[] }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(apiUrl(path), {
@@ -70,4 +70,14 @@ export async function getCardTraderMarketPrice(input: { scryfallId: string; card
   const query = new URLSearchParams({ scryfallId: input.scryfallId, cardName: input.cardName, setCode: input.setCode, language: input.language, foil: String(input.foil) })
   const result = await request<{ data: { marketPrice: string | null; reason?: string } }>(`/cards/market-price?${query}`)
   return result.data.marketPrice
+}
+
+export type ReservationRecord = { id: string; inventoryItemId: string; customer: string; quantity: number; status: 'RESERVED' | 'CONFIRMED' | 'SOLD' | 'CANCELLED'; reservedAt: string }
+export async function createReservation(inventoryItemId: string, input: { customer: string; quantity: number }): Promise<ReservationRecord> {
+  const result = await request<{ data: ReservationRecord }>(`/inventory/${inventoryItemId}/reservations`, { method: 'POST', body: JSON.stringify(input) })
+  return result.data
+}
+export async function updateReservationStatus(inventoryItemId: string, reservationId: string, status: ReservationRecord['status']): Promise<ReservationRecord> {
+  const result = await request<{ data: ReservationRecord }>(`/inventory/${inventoryItemId}/reservations/${reservationId}`, { method: 'PATCH', body: JSON.stringify({ status }) })
+  return result.data
 }
