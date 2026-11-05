@@ -37,19 +37,40 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
   const game = typeof req.query.game === 'string' ? req.query.game : 'MAGIC'
   if (query.length < 2) return res.json({ data: [] })
   if (game !== 'MAGIC') return res.status(501).json({ error: 'Autocompletamento catalogo disponibile al momento per Magic: The Gathering.' })
+
   try {
-    const url = new URL('https://api.scryfall.com/cards/search')
-    url.searchParams.set('q', `name:${query.replace(/[\\\\:{}()\\[\\]"]/g, ' ').trim()} game:paper`)
-    url.searchParams.set('order', 'name')
-    url.searchParams.set('unique', 'prints')
-    url.searchParams.set('page', '1')
-    const response = await fetch(url, { headers: { 'User-Agent': 'CardVault/0.1 (inventory app)', 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000) })
-    if (!response.ok) {
-      if (response.status === 404) return res.json({ data: [] })
-      throw new Error(`Scryfall responded ${response.status}`)
+    // Cerca sia il nome Oracle (normalmente inglese) sia le stampe localizzate
+    // in italiano. Scryfall restituisce le singole edizioni/stampe.
+    const safeQuery = query.replace(/[\\\\:{}()\\[\\]"]/g, ' ').trim()
+    const search = async (language?: 'it' | 'en') => {
+      const url = new URL('https://api.scryfall.com/cards/search')
+      url.searchParams.set('q', `name:"${safeQuery}" game:paper${language ? ` lang:${language}` : ''}`)
+      url.searchParams.set('order', 'name')
+      url.searchParams.set('unique', 'prints')
+      url.searchParams.set('page', '1')
+      const response = await fetch(url, { headers: { 'User-Agent': 'CardVault/0.1 (inventory app)', 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000) })
+      if (!response.ok) {
+        if (response.status === 404) return []
+        throw new Error(`Scryfall responded ${response.status}`)
+      }
+      const body = await response.json() as { data?: Array<{ id: string; name: string; set_name: string; set: string; collector_number: string; lang: string; foil: boolean; nonfoil: boolean; image_uris?: { small?: string }; prices?: { eur?: string | null; eur_foil?: string | null } }> }
+      return body.data ?? []
     }
-    const body = await response.json() as { data?: Array<{ id: string; name: string; set_name: string; set: string; collector_number: string; lang: string; foil: boolean; nonfoil: boolean; image_uris?: { small?: string }; prices?: { eur?: string | null; eur_foil?: string | null } }> }
-    const data = (body.data ?? []).slice(0, 20).map(card => ({ scryfallId: card.id, name: card.name, setName: card.set_name, setCode: card.set, collectorNumber: card.collector_number, language: card.lang, foil: card.foil && !card.nonfoil, imageUrl: card.image_uris?.small ?? null, marketPrice: card.prices?.eur ?? card.prices?.eur_foil ?? null }))
+
+    const [allNames, italianNames] = await Promise.all([search(), search('it')])
+    const unique = new Map<string, (typeof allNames)[number]>()
+    for (const card of [...italianNames, ...allNames]) unique.set(card.id, card)
+    const data = [...unique.values()].slice(0, 30).map(card => ({
+      scryfallId: card.id,
+      name: card.name,
+      setName: card.set_name,
+      setCode: card.set,
+      collectorNumber: card.collector_number,
+      language: card.lang,
+      foil: card.foil && !card.nonfoil,
+      imageUrl: card.image_uris?.small ?? null,
+      marketPrice: card.prices?.eur ?? card.prices?.eur_foil ?? null,
+    }))
     return res.json({ data })
   } catch (error) { return next(error) }
 })
