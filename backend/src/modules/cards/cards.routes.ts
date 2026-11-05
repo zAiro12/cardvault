@@ -138,14 +138,26 @@ cardsRouter.get('/image', async (req, res, next) => {
   const language = req.query.language === 'it' ? 'it' : 'en'
   if (!name) return res.status(400).json({ error: 'Card name is required' })
   try {
-    const url = new URL('https://api.scryfall.com/cards/named')
-    url.searchParams.set('exact', name)
-    url.searchParams.set('lang', language)
-    const response = await fetch(url, { headers: { 'User-Agent': 'CardVault/0.1 (inventory app)', 'Accept': 'application/json' }, signal: AbortSignal.timeout(8000) })
-    if (!response.ok) return res.json({ data: { imageUrl: null } })
-    const card = await response.json() as { image_uris?: { normal?: string; large?: string }; card_faces?: Array<{ image_uris?: { normal?: string; large?: string } }> }
-    const imageUrl = card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.large ?? null
-    return res.json({ data: { imageUrl } })
+    const headers = { 'User-Agent': 'CardVault/0.1 (inventory app)', Accept: 'application/json' }
+    type ScryfallCard = { name?: string; printed_name?: string; image_uris?: { normal?: string; large?: string }; card_faces?: Array<{ image_uris?: { normal?: string; large?: string } }> }
+    const imageOf = (card: ScryfallCard) => card.image_uris?.normal ?? card.image_uris?.large ?? card.card_faces?.[0]?.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.large ?? null
+    // The named endpoint can fail for localized print names. Search the print catalog
+    // in the requested language, then fall back to English and match the name.
+    for (const lang of [language, language === 'it' ? 'en' : 'it']) {
+      const url = new URL('https://api.scryfall.com/cards/search')
+      url.searchParams.set('q', `name:"${name.replace(/["\\]/g, ' ')}" lang:${lang} game:paper`)
+      url.searchParams.set('unique', 'prints')
+      url.searchParams.set('order', 'name')
+      const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) })
+      if (!response.ok) continue
+      const body = await response.json() as { data?: ScryfallCard[] }
+      const cards = body.data ?? []
+      const normalized = (value: string) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().trim()
+      const exact = cards.find(card => normalized(card.name || '') === normalized(name) || normalized(card.printed_name || '') === normalized(name))
+      const imageUrl = imageOf(exact ?? cards[0] ?? {})
+      if (imageUrl) return res.json({ data: { imageUrl } })
+    }
+    return res.json({ data: { imageUrl: null } })
   } catch (error) { return next(error) }
 })
 
