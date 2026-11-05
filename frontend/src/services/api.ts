@@ -86,3 +86,8 @@ export async function updateInventory(id: string, input: { quantity?: number; co
   const result = await request<{ data: InventoryRecord }>(`/inventory/${id}`, { method: 'PATCH', body: JSON.stringify(input) })
   return result.data
 }
+
+export async function getCardImage(name: string, language: string): Promise<string | null> {
+  const result = await request<{ data: { imageUrl: string | null } }>(`/cards/image?name=${encodeURIComponent(name)}&language=${encodeURIComponent(language)}`)
+  return result.data.imageUrl
+}
