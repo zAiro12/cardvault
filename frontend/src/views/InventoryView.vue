@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, getInventory, type CardSuggestion, type Game, type InventoryRecord } from '../services/api'
+import { addInventory, autocompleteCards, createCard, createReservation as apiCreateReservation, getCardTraderMarketPrice, getInventory, updateReservationStatus, type CardSuggestion, type Game, type InventoryRecord } from '../services/api'
 
 const rows = ref<InventoryRecord[]>([])
 const loading = ref(true)
@@ -9,6 +9,10 @@ const error = ref('')
 const success = ref('')
 const search = ref('')
 const showForm = ref(false)
+const reservingRow = ref<InventoryRecord | null>(null)
+const reservationCustomer = ref('')
+const reservationQuantity = ref(1)
+const reservationSaving = ref(false)
 const form = ref({ game: 'MAGIC' as Game, name: '', setName: '', collectorNumber: '', language: 'it', foil: false, quantity: 1, condition: 'NM', purchasePrice: '', marketPrice: '', location: '', notes: '' })
 const suggestions = ref<CardSuggestion[]>([])
 const searchingCards = ref(false)
@@ -72,6 +76,23 @@ async function save() {
   } catch (e) { error.value = e instanceof Error ? e.message : 'Errore durante il salvataggio' }
   finally { saving.value = false }
 }
+async function reserve() {
+  if (!reservingRow.value || !reservationCustomer.value.trim()) { error.value = 'Inserisci il nome del cliente.'; return }
+  reservationSaving.value = true; error.value = ''
+  try {
+    await apiCreateReservation(reservingRow.value.id, { customer: reservationCustomer.value.trim(), quantity: reservationQuantity.value })
+    success.value = 'Prenotazione creata.'
+    reservingRow.value = null; reservationCustomer.value = ''; reservationQuantity.value = 1
+    await load()
+  } catch (e) { error.value = e instanceof Error ? e.message : 'Errore durante la prenotazione' }
+  finally { reservationSaving.value = false }
+}
+async function changeReservation(row: InventoryRecord, reservationId: string, status: 'SOLD' | 'CANCELLED') {
+  const action = status === 'SOLD' ? 'concludere la vendita e scaricare le copie' : 'annullare la prenotazione'
+  if (!window.confirm(`Vuoi ${action}?`)) return
+  try { await updateReservationStatus(row.id, reservationId, status); success.value = status === 'SOLD' ? 'Vendita registrata e stock aggiornato.' : 'Prenotazione annullata.'; await load() }
+  catch (e) { error.value = e instanceof Error ? e.message : 'Errore aggiornamento prenotazione' }
+}
 async function remove(row: InventoryRecord) {
   if (!window.confirm(`Rimuovere ${row.card.name} dal magazzino?`)) return
   try { await (await import('../services/api')).deleteInventory(row.id); await load() }
@@ -105,15 +126,23 @@ onMounted(load)
       </form>
     </div>
     <p v-if="error" class="notice error">{{ error }}</p><p v-if="success" class="notice success">{{ success }}</p>
+    <div v-if="reservingRow" class="panel reservation-panel">
+      <div class="panel-heading"><div><h2>Nuova prenotazione · {{ reservingRow.card.name }}</h2><p>{{ available(reservingRow) }} copie disponibili</p></div><button class="icon-button" type="button" @click="reservingRow = null">Chiudi</button></div>
+      <form class="reservation-form" @submit.prevent="reserve">
+        <label>Cliente<input v-model="reservationCustomer" required maxlength="200" placeholder="Nome cliente"/></label>
+        <label>Quantità<input v-model.number="reservationQuantity" type="number" min="1" :max="available(reservingRow)" required/></label>
+        <button class="primary-button" type="submit" :disabled="reservationSaving || reservationQuantity > available(reservingRow)">{{ reservationSaving ? 'Salvataggio…' : 'Prenota copie' }}</button>
+      </form>
+    </div>
     <div class="panel inventory-panel">
       <div class="inventory-toolbar"><input v-model="search" placeholder="Cerca carta, set o posizione…"/><span>{{ filtered.length }} voci</span></div>
       <div v-if="loading" class="empty-activity">Caricamento inventario…</div>
       <div v-else-if="!filtered.length" class="empty-activity"><i class="pi pi-clone"></i><strong>{{ search ? 'Nessun risultato' : 'Magazzino vuoto' }}</strong><span>Usa “Aggiungi carta” per registrare la prima carta.</span></div>
-      <div v-else class="table-wrap"><table class="inventory-table"><thead><tr><th>Carta</th><th>Set</th><th>Condizione</th><th>Quantità</th><th>Disponibili</th><th>Prezzo</th><th>Posizione</th><th></th></tr></thead><tbody><tr v-for="row in filtered" :key="row.id"><td><strong>{{ row.card.name }}</strong><small>{{ row.card.game }} · {{ row.card.language.toUpperCase() }}<span v-if="row.card.foil"> · Foil</span></small></td><td>{{ row.card.setName || '—' }}<small>{{ row.card.collectorNumber || '' }}</small></td><td>{{ row.condition }}</td><td>{{ row.quantity }}</td><td>{{ available(row) }}</td><td>{{ euro(row.marketPrice) }}</td><td>{{ row.location?.name || 'Non assegnata' }}</td><td><button class="icon-button" title="Rimuovi" @click="remove(row)"><i class="pi pi-trash"></i></button></td></tr></tbody></table></div>
+      <div v-else class="table-wrap"><table class="inventory-table"><thead><tr><th>Carta</th><th>Set</th><th>Condizione</th><th>Quantità</th><th>Disponibili</th><th>Prenotazioni</th><th>Prezzo</th><th>Posizione</th><th></th></tr></thead><tbody><tr v-for="row in filtered" :key="row.id"><td><strong>{{ row.card.name }}</strong><small>{{ row.card.game }} · {{ row.card.language.toUpperCase() }}<span v-if="row.card.foil"> · Foil</span></small></td><td>{{ row.card.setName || '—' }}<small>{{ row.card.collectorNumber || '' }}</small></td><td>{{ row.condition }}</td><td>{{ row.quantity }}</td><td>{{ available(row) }}</td><td class="reservation-cell"><button class="secondary-button reserve-button" type="button" :disabled="available(row) <= 0" @click="reservingRow = row; reservationCustomer = ''; reservationQuantity = 1">+ Prenota</button><div v-for="reservation in row.reservations || []" :key="reservation.id" class="reservation-entry"><span><strong>{{ reservation.customer }}</strong><small>{{ reservation.quantity }} · {{ reservation.status }}</small></span><span v-if="['RESERVED','CONFIRMED'].includes(reservation.status)" class="reservation-actions"><button type="button" title="Segna venduta" @click="changeReservation(row, reservation.id, 'SOLD')">Venduta</button><button type="button" title="Annulla" @click="changeReservation(row, reservation.id, 'CANCELLED')">Annulla</button></span></div></td><td>{{ euro(row.marketPrice) }}</td><td>{{ row.location?.name || 'Non assegnata' }}</td><td><button class="icon-button" title="Rimuovi" @click="remove(row)"><i class="pi pi-trash"></i></button></td></tr></tbody></table></div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.form-panel{margin-bottom:20px}.autocomplete-field{position:relative}.autocomplete-status,.selected-print{font-size:11px;color:var(--muted)}.suggestions{position:absolute;top:100%;left:0;right:0;z-index:20;max-height:340px;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 32px #0004}.suggestion{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);text-align:left;cursor:pointer}.suggestion:hover{background:var(--surface-hover,rgba(120,120,120,.12))}.suggestion img{width:38px;height:52px;object-fit:cover;border-radius:4px}.suggestion span{min-width:0;flex:1}.suggestion strong,.suggestion small{display:block}.suggestion small{color:var(--muted);font-size:11px;margin-top:3px}.suggestion b{font-size:12px;white-space:nowrap}.card-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}.card-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:13px}.card-form input,.card-form select,.card-form textarea,.inventory-toolbar input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:inherit}.card-form .wide{grid-column:1/-1}.checkbox-label{flex-direction:row!important;align-items:center}.checkbox-label input{width:auto}.form-actions{display:flex;justify-content:flex-end}.notice{padding:12px 14px;border-radius:10px;margin:12px 0}.error{color:#fca5a5;background:#451a1a}.success{color:#86efac;background:#143321}.inventory-toolbar{display:flex;gap:14px;align-items:center;padding-bottom:16px}.inventory-toolbar input{max-width:480px}.inventory-toolbar span{color:var(--muted);font-size:13px}.table-wrap{overflow-x:auto}.inventory-table{width:100%;border-collapse:collapse;text-align:left}.inventory-table th,.inventory-table td{padding:13px 10px;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}.inventory-table th{color:var(--muted);font-weight:600}.inventory-table td small{display:block;color:var(--muted);margin-top:4px}.icon-button{border:0;background:transparent;color:var(--muted);padding:8px;cursor:pointer}.icon-button:hover{color:#f87171}.empty-activity{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--muted)}@media(max-width:800px){.card-form{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.card-form{grid-template-columns:1fr}}
+.form-panel,.reservation-panel{margin-bottom:20px}.reservation-form{display:flex;align-items:end;gap:14px}.reservation-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:13px;min-width:220px}.reservation-form input{padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text)}.reservation-cell{min-width:190px}.reserve-button{padding:5px 9px!important;font-size:11px!important;margin-bottom:4px}.reservation-entry{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:5px 0}.reservation-entry strong,.reservation-entry small{display:block}.reservation-entry small{font-size:10px;color:var(--muted)}.reservation-actions{display:flex;gap:3px}.reservation-actions button{border:1px solid var(--border);border-radius:5px;background:transparent;color:var(--text);padding:3px 5px;font-size:10px;cursor:pointer}.autocomplete-field{position:relative}.autocomplete-status,.selected-print{font-size:11px;color:var(--muted)}.suggestions{position:absolute;top:100%;left:0;right:0;z-index:20;max-height:340px;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 32px #0004}.suggestion{width:100%;display:flex;align-items:center;gap:10px;padding:8px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);text-align:left;cursor:pointer}.suggestion:hover{background:var(--surface-hover,rgba(120,120,120,.12))}.suggestion img{width:38px;height:52px;object-fit:cover;border-radius:4px}.suggestion span{min-width:0;flex:1}.suggestion strong,.suggestion small{display:block}.suggestion small{color:var(--muted);font-size:11px;margin-top:3px}.suggestion b{font-size:12px;white-space:nowrap}.card-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}.card-form label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:13px}.card-form input,.card-form select,.card-form textarea,.inventory-toolbar input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text);font:inherit}.card-form .wide{grid-column:1/-1}.checkbox-label{flex-direction:row!important;align-items:center}.checkbox-label input{width:auto}.form-actions{display:flex;justify-content:flex-end}.notice{padding:12px 14px;border-radius:10px;margin:12px 0}.error{color:#fca5a5;background:#451a1a}.success{color:#86efac;background:#143321}.inventory-toolbar{display:flex;gap:14px;align-items:center;padding-bottom:16px}.inventory-toolbar input{max-width:480px}.inventory-toolbar span{color:var(--muted);font-size:13px}.table-wrap{overflow-x:auto}.inventory-table{width:100%;border-collapse:collapse;text-align:left}.inventory-table th,.inventory-table td{padding:13px 10px;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}.inventory-table th{color:var(--muted);font-weight:600}.inventory-table td small{display:block;color:var(--muted);margin-top:4px}.icon-button{border:0;background:transparent;color:var(--muted);padding:8px;cursor:pointer}.icon-button:hover{color:#f87171}.empty-activity{min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;color:var(--muted)}@media(max-width:800px){.card-form{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.card-form{grid-template-columns:1fr}}
 </style>
