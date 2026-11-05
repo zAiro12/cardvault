@@ -1,3 +1,38 @@
+@import url('primeicons/primeicons.css');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+/* Restore missing global/layout primitives: previous style overwrite omitted these. */
+*{box-sizing:border-box}
+html,body,#app{margin:0;min-height:100%;width:100%}
+html{background:var(--bg)}
+body{font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.45;color:var(--text);min-width:320px;background:var(--bg);font-synthesis:none}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed}
+a{color:inherit;text-decoration:none}
+.app-shell{display:flex;min-height:100vh;min-height:100dvh;width:100%}
+.sidebar{display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;height:100dvh}
+.brand{display:flex;align-items:center;font-family:Manrope,sans-serif;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
+.brand-mark{display:grid;place-items:center;color:#fff;flex-shrink:0}
+.nav-item{display:flex;align-items:center;text-decoration:none;white-space:nowrap}
+.nav-item i{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-bottom{display:flex;align-items:center;gap:9px;margin-top:auto}
+.sidebar-bottom strong,.sidebar-bottom small{display:block}.sidebar-bottom strong{font-size:11px}.sidebar-bottom small{font-size:10px;color:var(--muted);margin-top:2px}
+.main-area{flex:1;min-width:0;width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2}
+.topbar-actions{display:flex;align-items:center}.topbar-breadcrumb{color:var(--text)}.breadcrumb{color:var(--muted)}
+.topbar-icon{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.theme-button{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+.page-content{width:100%;margin:0 auto}
+.page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.page-heading h1{font-family:Manrope,sans-serif;font-weight:800;line-height:1.2;margin:0;color:var(--text)}
+.subtitle{line-height:1.55;color:var(--muted)}
+.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.metric-card{min-width:0}
+.metric-top{display:flex;align-items:center;justify-content:space-between}
+.metric-value{font-family:Manrope,sans-serif;font-weight:800;line-height:1.2}
+.quick-action-grid{display:grid}
+.quick-action{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1px solid;cursor:pointer;text-decoration:none}
+.quick-action:disabled{cursor:not-allowed}
+.section-title,.recent-heading h2{font-family:Manrope,sans-serif}
+.activity-row{display:flex;align-items:center}.activity-copy{display:flex;flex-direction:column;min-width:0}
+.status-line{display:flex;align-items:center;gap:8px;color:var(--muted)}
 
 /* Reference-specific palette, hierarchy and placement */
 :root{--bg:#10111b;--surface:#1b1d2b;--surface2:#252638;--border:#34364d;--text:#f3f2fa;--muted:#a0a1b8;--accent:#9271f4;--accent2:#b59aff;--green:#43e6a8;--pink:#e681d5;--blue:#58b8ff}
