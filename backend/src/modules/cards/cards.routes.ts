@@ -69,6 +69,7 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
     const matchingNames = score(englishNames) > score(italianNames) ? englishNames : italianNames
     const data = matchingNames.slice(0, 30).map(card => ({
       scryfallId: card.id,
+      oracleName: card.name,
       name: card.lang === 'it' && card.printed_name ? card.printed_name : card.name,
       setName: card.set_name,
       setCode: card.set,
@@ -84,11 +85,12 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
 
 cardsRouter.get('/market-price', async (req, res, next) => {
   const scryfallId = typeof req.query.scryfallId === 'string' ? req.query.scryfallId : ''
+  const cardName = typeof req.query.cardName === 'string' ? req.query.cardName.trim() : ''
   const setCode = typeof req.query.setCode === 'string' ? req.query.setCode.toLowerCase() : ''
   const language = typeof req.query.language === 'string' ? req.query.language.toLowerCase() : 'it'
   const foil = req.query.foil === 'true'
   const token = process.env.CARDTRADER_API_TOKEN
-  if (!scryfallId || !setCode) return res.status(400).json({ error: 'scryfallId e setCode sono richiesti.' })
+  if ((!scryfallId && !cardName) || !setCode) return res.status(400).json({ error: 'scryfallId/cardName e setCode sono richiesti.' })
   if (!token) return res.status(503).json({ error: 'CARDTRADER_API_TOKEN non configurato su Vercel.' })
 
   try {
@@ -101,9 +103,18 @@ cardsRouter.get('/market-price', async (req, res, next) => {
 
     const blueprintsResponse = await fetch(`https://api.cardtrader.com/api/v2/blueprints/export?expansion_id=${expansion.id}`, { headers, signal: AbortSignal.timeout(15000) })
     if (!blueprintsResponse.ok) throw new Error(`CardTrader blueprints: ${blueprintsResponse.status}`)
-    const blueprints = await blueprintsResponse.json() as Array<{ id: number; scryfall_id?: string }>
-    const blueprint = blueprints.find(item => item.scryfall_id === scryfallId)
-    if (!blueprint) return res.json({ data: { marketPrice: null, reason: 'Stampa non presente nel catalogo CardTrader' } })
+    const blueprints = await blueprintsResponse.json() as Array<{ id: number; scryfall_id?: string; name?: string; version?: string | null }>
+    // First use the exact Scryfall print ID. Some CardTrader catalog blueprints
+    // lack this mapping, so fall back to the exact English card name within the
+    // already matched expansion; use only an unambiguous match.
+    let blueprint = blueprints.find(item => item.scryfall_id === scryfallId)
+    if (!blueprint && cardName) {
+      const normalize = (value: string) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const candidates = blueprints.filter(item => item.name && normalize(item.name) === normalize(cardName))
+      if (candidates.length === 1) blueprint = candidates[0]
+      else if (candidates.length > 1) return res.json({ data: { marketPrice: null, reason: 'Più stampe CardTrader con lo stesso nome: match non univoco' } })
+    }
+    if (!blueprint) return res.json({ data: { marketPrice: null, reason: 'Stampa non presente nel catalogo CardTrader (ID Scryfall e nome non associati)' } })
 
     // CardTrader applica nativamente i filtri lingua e foil sull'endpoint marketplace.
     const params = new URLSearchParams({ blueprint_id: String(blueprint.id), language, foil: String(foil) })
