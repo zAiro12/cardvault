@@ -1,0 +1,16 @@
+{
+  "id": "/cardvault/",
+  "name": "CardVault — Gestione carte",
+  "short_name": "CardVault",
+  "description": "Gestisci il tuo magazzino di carte collezionabili, le posizioni e le prenotazioni.",
+  "lang": "it",
+  "start_url": "/cardvault/",
+  "scope": "/cardvault/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#171923",
+  "theme_color": "#171923",
+  "icons": [
+    { "src": "/cardvault/cardvault-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
