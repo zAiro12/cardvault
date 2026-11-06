@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
@@ -22,10 +22,30 @@ const canUseCamera = computed(() => !!navigator.mediaDevices?.getUserMedia)
 
 async function startCamera() {
   cameraError.value = ''
+  if (!navigator.mediaDevices?.getUserMedia) {
+    cameraError.value = 'Fotocamera non disponibile. Apri CardVault tramite HTTPS e usa un browser compatibile.'
+    return
+  }
   try {
-    stream.value = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    stream.value = media
     cameraActive.value = true
-    if (video.value) video.value.srcObject = stream.value
+    await nextTick()
+    const element = video.value
+    if (!element) {
+      media.getTracks().forEach(track => track.stop())
+      stream.value = null
+      cameraActive.value = false
+      cameraError.value = 'Anteprima video non disponibile. Riprova ad avviare la fotocamera.'
+      return
+    }
+    element.srcObject = media
+    element.setAttribute('playsinline', '')
+    element.muted = true
+    try { await element.play() }
+    catch (playError) {
+      cameraError.value = playError instanceof Error ? 'La fotocamera è stata aperta ma la preview non parte: ' + playError.message : 'Tocca Avvia fotocamera e consenti la riproduzione video.'
+    }
   } catch (e) {
     cameraError.value = e instanceof Error ? e.message : 'Impossibile accedere alla fotocamera. Controlla i permessi del browser.'
   }
