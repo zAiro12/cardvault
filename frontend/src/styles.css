@@ -161,3 +161,15 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 :root[data-theme="light"] .reservation-summary .metric-card{background:linear-gradient(145deg,#fff,#fbfaff);border-color:#e2d8fb;box-shadow:0 3px 10px #5533a20a}
 :root[data-theme="light"] .reservation-summary .metric-top span,:root[data-theme="light"] .reservation-summary .metric-value{color:#171526}
 @media(max-width:700px){.reservation-summary{grid-template-columns:1fr;gap:12px}.reservation-summary .metric-card{min-height:unset;padding:16px 18px}.reservation-summary .metric-value{font-size:24px}}
+
+
+/* Reservation summary: robust card layout (overrides generic dashboard KPI alignment). */
+.reservation-page .reservation-summary{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;align-items:stretch!important;width:100%;}
+.reservation-page .reservation-summary>.metric-card{box-sizing:border-box!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;gap:8px!important;min-width:0!important;min-height:142px!important;width:100%!important;padding:20px 22px!important;margin:0!important;border:1px solid var(--border)!important;border-radius:14px!important;background:var(--surface)!important;}
+.reservation-page .reservation-summary>.metric-card .metric-top{display:flex!important;flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;gap:10px!important;width:100%!important;margin:0!important;}
+.reservation-page .reservation-summary>.metric-card .metric-top i{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 20px!important;width:20px!important;font-size:18px!important;}
+.reservation-page .reservation-summary>.metric-card .metric-top span{display:block!important;flex:1 1 auto!important;width:auto!important;text-align:left!important;white-space:normal!important;font-size:13px!important;line-height:1.4!important;font-weight:600!important;color:var(--text)!important;}
+.reservation-page .reservation-summary>.metric-card .metric-value{display:block!important;width:100%!important;margin:2px 0 0!important;text-align:left!important;font-size:clamp(24px,2.2vw,30px)!important;line-height:1.15!important;font-weight:700!important;color:var(--text)!important;}
+.reservation-page .reservation-summary>.metric-card .metric-note{display:block!important;width:100%!important;margin:0!important;text-align:left!important;font-size:11px!important;line-height:1.4!important;color:var(--muted)!important;}
+:root[data-theme="light"] .reservation-page .reservation-summary>.metric-card{background:linear-gradient(145deg,#fff,#fbfaff)!important;border-color:#e2d8fb!important;box-shadow:0 3px 12px rgba(85,51,162,.07)!important;}
+@media(max-width:700px){.reservation-page .reservation-summary{grid-template-columns:1fr!important;gap:11px!important}.reservation-page .reservation-summary>.metric-card{min-height:unset!important;padding:16px 18px!important}.reservation-page .reservation-summary>.metric-card .metric-value{font-size:24px!important}}
