@@ -114,3 +114,18 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 .reservation-page.page-content{padding:clamp(24px,3vw,42px) clamp(18px,3.2vw,48px) 44px}
 @media(max-width:850px){.page-content{padding:28px 22px 38px}.dashboard-concept.page-content{padding:24px 18px 38px}.reservation-page.page-content{padding:28px 22px 38px}}
 @media(max-width:600px){.page-content{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}.dashboard-concept.page-content{padding:21px 13px calc(28px + env(safe-area-inset-bottom))}.reservation-page.page-content{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}}
+
+
+/* CardVault shared button system: use these classes for all in-page actions. Header utility controls (.topbar-icon) intentionally remain circular. */
+:root{--button-radius:9px;--button-height:38px;--button-primary-bg:linear-gradient(135deg,#8d70f2,#7657dc);--button-primary-border:#9a80f5;--button-primary-text:#fff;--button-secondary-bg:#242537;--button-secondary-border:#3b3d56;--button-secondary-text:#d8d5e9}
+.primary-button,.secondary-button,.modal-cancel,.reservation-filters button,.reservation-actions button{min-height:var(--button-height);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 15px;border:1px solid var(--button-secondary-border);border-radius:var(--button-radius);font:600 12px/1.2 'DM Sans',sans-serif;letter-spacing:.05px;text-decoration:none;white-space:nowrap;cursor:pointer;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;color:var(--button-secondary-text);background:var(--button-secondary-bg)}
+.primary-button{color:var(--button-primary-text);background:var(--button-primary-bg);border-color:var(--button-primary-border);box-shadow:0 3px 12px rgba(125,91,228,.15)}
+.primary-button:hover:not(:disabled){filter:brightness(1.08);box-shadow:0 5px 16px rgba(125,91,228,.25);transform:translateY(-1px)}
+.secondary-button:hover:not(:disabled),.modal-cancel:hover:not(:disabled),.reservation-filters button:hover:not(:disabled),.reservation-actions button:hover:not(:disabled){background:#303149;border-color:#65558e;color:#f5f1ff}
+.primary-button:focus-visible,.secondary-button:focus-visible,.modal-cancel:focus-visible,.reservation-filters button:focus-visible,.reservation-actions button:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.primary-button:disabled,.secondary-button:disabled,.modal-cancel:disabled{opacity:.48;box-shadow:none;transform:none;cursor:not-allowed}
+.reservation-filters button{min-height:34px;padding:7px 12px;font-size:11px;font-weight:500}
+.reservation-filters button.selected{background:rgba(139,92,246,.2);border-color:#8b70ef;color:#d2c2ff;box-shadow:inset 0 0 0 1px rgba(139,112,239,.12)}
+.reservation-actions .primary-button,.reservation-actions .secondary-button{min-height:32px;padding:7px 10px;font-size:11px}
+.modal-cancel{width:100%;min-height:44px;background:transparent}
+@media(max-width:600px){.primary-button,.secondary-button{min-height:36px;padding:8px 12px;font-size:11px}.reservation-filters button{min-height:32px;padding:7px 9px}}
