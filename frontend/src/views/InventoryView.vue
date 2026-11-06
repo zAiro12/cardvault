@@ -189,3 +189,13 @@ onMounted(load)
 .reservation-cell .reservation-actions button:first-child:hover{background:rgba(34,197,139,.2);transform:translateY(-1px)}
 .reservation-cell .reservation-actions button:last-child:hover{border-color:rgba(248,113,113,.5);background:rgba(248,113,113,.1);color:#fca5a5}
 </style>
+
+<style scoped>
+/* Center the row action icons, enlarge their hit targets, and remove the stray divider below them. */
+.inventory-table td.item-actions{display:flex;align-items:center;justify-content:center;gap:12px;min-height:58px;border-bottom:0!important;padding:10px 14px}
+.inventory-table td.item-actions .icon-button{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:1px solid transparent;border-radius:9px;color:var(--muted);font-size:16px;line-height:1}
+.inventory-table td.item-actions .icon-button i{font-size:17px}
+.inventory-table td.item-actions .icon-button:hover{border-color:var(--border);background:var(--surface2);color:var(--text)}
+.inventory-table td.item-actions .edit-action:hover{color:#a99aff}
+.inventory-table td.item-actions .icon-button:not(.edit-action):hover{color:#f87171}
+</style>
