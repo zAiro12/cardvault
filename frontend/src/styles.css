@@ -173,3 +173,44 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 .reservation-page .reservation-summary>.metric-card .metric-note{display:block!important;width:100%!important;margin:0!important;text-align:left!important;font-size:11px!important;line-height:1.4!important;color:var(--muted)!important;}
 :root[data-theme="light"] .reservation-page .reservation-summary>.metric-card{background:linear-gradient(145deg,#fff,#fbfaff)!important;border-color:#e2d8fb!important;box-shadow:0 3px 12px rgba(85,51,162,.07)!important;}
 @media(max-width:700px){.reservation-page .reservation-summary{grid-template-columns:1fr!important;gap:11px!important}.reservation-page .reservation-summary>.metric-card{min-height:unset!important;padding:16px 18px!important}.reservation-page .reservation-summary>.metric-card .metric-value{font-size:24px!important}}
+
+/* Inventory table: draw each divider once across the entire row, including the action column. */
+.table-wrap{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.inventory-table{width:100%;min-width:1080px;border-collapse:separate;border-spacing:0;table-layout:auto}
+.inventory-table thead th{background:var(--surface2);padding:15px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.inventory-table tbody tr{background:var(--surface);transition:background .16s ease}
+.inventory-table tbody tr:hover{background:color-mix(in srgb,var(--surface2) 72%,var(--surface))}
+.inventory-table tbody td{padding:17px 12px;border-bottom:0;vertical-align:middle}
+.inventory-table tbody tr+tr td{border-top:1px solid var(--border)}
+.inventory-table tbody tr:last-child td{border-bottom:0}
+.inventory-table td:first-child strong{font-weight:700}
+.inventory-table .reservation-cell{min-width:205px;white-space:normal}
+.inventory-table .reservation-entry{padding-top:7px;margin-top:7px;border-top:1px solid color-mix(in srgb,var(--border) 75%,transparent)}
+.inventory-table .item-actions{justify-content:flex-end;white-space:nowrap}
+
+/* Reservations: clear hierarchy and a compact, aligned summary + card ledger. */
+.reservation-page .reservation-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.reservation-page .reservation-summary .metric-card{padding:20px 22px;border:1px solid var(--border);border-radius:15px;background:linear-gradient(145deg,var(--surface2),var(--surface));min-height:120px}
+.reservation-page .reservation-summary .metric-top{justify-content:flex-start;gap:10px;font-size:12px;color:var(--muted)}
+.reservation-page .reservation-summary .metric-top i{font-size:20px;color:var(--accent2)}
+.reservation-page .reservation-summary .metric-value{font:800 28px Manrope,sans-serif;color:var(--text);margin:12px 0 4px}
+.reservation-page .reservation-summary .metric-note{font-size:11px;color:var(--muted)}
+.reservation-page .reservation-toolbar{padding:10px 12px;margin:0 0 18px;border:1px solid var(--border);border-radius:13px;background:var(--surface);min-height:58px}
+.reservation-page .reservation-filters{gap:5px;padding:3px;border-radius:10px;background:var(--surface2)}
+.reservation-page .reservation-filters button{padding:9px 15px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font-weight:600}
+.reservation-page .reservation-filters button.selected{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 10px #8059e822}
+.reservation-page .reservation-list{gap:0;border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)}
+.reservation-page .reservation-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,auto);align-items:center;gap:24px;padding:20px 22px;border:0;border-radius:0;background:transparent}
+.reservation-page .reservation-card+.reservation-card{border-top:1px solid var(--border)}
+.reservation-page .reservation-card-main{gap:15px}
+.reservation-page .reservation-card-icon{width:48px;height:58px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:11px;background:linear-gradient(145deg,color-mix(in srgb,var(--accent) 18%,var(--surface2)),var(--surface2));font-size:20px}
+.reservation-page .reservation-details h3{font:700 15px Manrope,sans-serif;line-height:1.35;margin:0 0 5px}
+.reservation-page .reservation-details p{font-size:11px;line-height:1.5}
+.reservation-page .reservation-details .reservation-customer{margin-top:7px}
+.reservation-page .reservation-card-side{display:grid;grid-template-columns:auto auto;align-items:center;justify-items:end;column-gap:12px;row-gap:8px}
+.reservation-page .reservation-card-side>strong{font:800 17px Manrope,sans-serif}
+.reservation-page .reservation-status{grid-column:2;padding:5px 10px;font-weight:700}
+.reservation-page .reservation-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:5px}
+.reservation-page .reservation-actions button{min-height:36px;border-radius:8px;padding:8px 12px;font-size:11px}
+.reservation-page .reservation-empty{border:0;border-radius:0;min-height:230px;background:transparent}
+@media(max-width:700px){.reservation-page .reservation-summary{grid-template-columns:1fr}.reservation-page .reservation-card{display:flex;flex-direction:column;align-items:stretch;gap:16px;padding:17px}.reservation-page .reservation-card-side{display:flex;align-items:flex-start;gap:9px}.reservation-page .reservation-status{grid-column:auto}.reservation-page .reservation-actions{width:100%;justify-content:flex-start}.reservation-page .reservation-toolbar{align-items:center;flex-direction:row;flex-wrap:wrap}.reservation-page .reservation-filters button{padding:8px 10px}}
