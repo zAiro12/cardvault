@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { usePreferencesStore } from './stores/preferences'
 const preferences = usePreferencesStore()
+const route = useRoute()
+const pageTitle = computed(() => ({ dashboard: 'Dashboard', inventory: 'Magazzino', reservations: 'Prenotazioni', scanner: 'Scanner' }[String(route.name)] || 'CardVault'))
 </script>
 
 <template>
@@ -11,7 +15,7 @@ const preferences = usePreferencesStore()
       <RouterLink class="nav-item" to="/" exact-active-class="active"><i class="pi pi-home"></i><span>Dashboard</span></RouterLink>
       <RouterLink class="nav-item" to="/inventory" active-class="active"><i class="pi pi-box"></i><span>Magazzino</span></RouterLink>
       <RouterLink class="nav-item" to="/reservations" active-class="active"><i class="pi pi-calendar"></i><span>Prenotazioni</span></RouterLink>
-      <a class="nav-item muted" aria-disabled="true"><i class="pi pi-qrcode"></i><span>Scanner</span></a>
+      <RouterLink class="nav-item" to="/scanner" active-class="active"><i class="pi pi-qrcode"></i><span>Scanner</span></RouterLink>
       <a class="nav-item muted" aria-disabled="true"><i class="pi pi-chart-line"></i><span>Prezzi</span></a>
       <a class="nav-item muted" aria-disabled="true"><i class="pi pi-users"></i><span>Clienti</span></a>
       <a class="nav-item muted" aria-disabled="true"><i class="pi pi-cog"></i><span>Impostazioni</span></a>
@@ -19,7 +23,7 @@ const preferences = usePreferencesStore()
     </aside>
     <main class="main-area">
       <header class="topbar">
-        <div class="topbar-breadcrumb"><span class="breadcrumb">Workspace /</span> <strong>Dashboard</strong></div>
+        <div class="topbar-breadcrumb"><span class="breadcrumb">Workspace /</span> <strong>{{ pageTitle }}</strong></div>
         <div class="topbar-actions">
           <button class="topbar-icon" aria-label="Cerca" title="Cerca"><i class="pi pi-search"></i></button>
           <button class="topbar-icon" aria-label="Notifiche" title="Notifiche"><i class="pi pi-bell"></i></button>
