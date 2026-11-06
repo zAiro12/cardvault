@@ -10,7 +10,7 @@ const preferences = usePreferencesStore()
       <div class="nav-label">GESTIONE</div>
       <RouterLink class="nav-item" to="/" exact-active-class="active"><i class="pi pi-home"></i><span>Dashboard</span></RouterLink>
       <RouterLink class="nav-item" to="/inventory" active-class="active"><i class="pi pi-box"></i><span>Magazzino</span></RouterLink>
-      <a class="nav-item muted" aria-disabled="true"><i class="pi pi-calendar"></i><span>Prenotazioni</span></a>
+      <RouterLink class="nav-item" to="/reservations" active-class="active"><i class="pi pi-calendar"></i><span>Prenotazioni</span></RouterLink>
       <a class="nav-item muted" aria-disabled="true"><i class="pi pi-qrcode"></i><span>Scanner</span></a>
       <a class="nav-item muted" aria-disabled="true"><i class="pi pi-chart-line"></i><span>Prezzi</span></a>
       <a class="nav-item muted" aria-disabled="true"><i class="pi pi-users"></i><span>Clienti</span></a>
