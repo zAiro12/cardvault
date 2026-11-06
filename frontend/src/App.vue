@@ -24,7 +24,7 @@ const preferences = usePreferencesStore()
           <button class="topbar-icon" aria-label="Cerca" title="Cerca"><i class="pi pi-search"></i></button>
           <button class="topbar-icon" aria-label="Notifiche" title="Notifiche"><i class="pi pi-bell"></i></button>
           <button class="topbar-icon profile-icon" aria-label="Profilo" title="Profilo"><i class="pi pi-user"></i></button>
-          <button class="theme-button" @click="preferences.toggleTheme()" :aria-label="preferences.theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'">
+          <button class="topbar-icon theme-button" @click="preferences.toggleTheme()" :aria-label="preferences.theme === 'dark' ? 'Attiva tema chiaro' : 'Attiva tema scuro'">
             <i :class="preferences.theme === 'dark' ? 'pi pi-sun' : 'pi pi-moon'"></i>
           </button>
         </div>
