@@ -92,3 +92,16 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 .reservation-empty strong{color:var(--text);font-size:14px}.reservation-empty a{color:#b59aff;text-decoration:none;margin-top:3px}
 .reservation-success{padding:10px 13px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.1);color:#34d399;border-radius:10px;font-size:12px;margin-bottom:12px}
 @media(max-width:700px){.reservation-summary{grid-template-columns:1fr}.reservation-card{align-items:flex-start;flex-direction:column;gap:13px}.reservation-card-side{align-items:flex-start;width:100%}.reservation-actions{flex-wrap:wrap}.reservation-toolbar{align-items:flex-start;flex-direction:column}.reservation-details h3{overflow-wrap:anywhere}}
+
+
+/* Generous page gutters for reservation management, consistent with the dashboard canvas. */
+.reservation-page{max-width:1440px;margin-inline:auto;padding:clamp(24px,3.2vw,48px) clamp(18px,3.4vw,52px) 40px}
+.reservation-page .page-heading{margin-bottom:26px;align-items:flex-start}
+.reservation-page .page-heading h1{font-size:clamp(26px,2vw,34px);letter-spacing:-.6px}
+.reservation-page .subtitle{margin-top:8px;font-size:13px}
+.reservation-page .reservation-summary{gap:16px;margin-bottom:26px}
+.reservation-page .reservation-toolbar{margin:22px 0}
+.reservation-page .reservation-list{gap:14px}
+.reservation-page .reservation-card{padding:22px}
+@media(max-width:850px){.reservation-page{padding:28px 22px 36px}}
+@media(max-width:600px){.reservation-page{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}.reservation-page .page-heading{gap:14px;margin-bottom:20px}.reservation-page .page-heading h1{font-size:25px}.reservation-page .subtitle{font-size:12px}.reservation-page .reservation-summary{gap:10px;margin-bottom:20px}.reservation-page .reservation-card{padding:16px}.reservation-page .reservation-toolbar{margin:16px 0}.reservation-page .reservation-filters{gap:6px}.reservation-page .reservation-filters button{padding:8px 10px}}
