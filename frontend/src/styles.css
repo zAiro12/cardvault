@@ -105,3 +105,12 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 .reservation-page .reservation-card{padding:22px}
 @media(max-width:850px){.reservation-page{padding:28px 22px 36px}}
 @media(max-width:600px){.reservation-page{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}.reservation-page .page-heading{gap:14px;margin-bottom:20px}.reservation-page .page-heading h1{font-size:25px}.reservation-page .subtitle{font-size:12px}.reservation-page .reservation-summary{gap:10px;margin-bottom:20px}.reservation-page .reservation-card{padding:16px}.reservation-page .reservation-toolbar{margin:16px 0}.reservation-page .reservation-filters{gap:6px}.reservation-page .reservation-filters button{padding:8px 10px}}
+
+
+/* Shared page gutters: apply breathing room consistently to every route. */
+.page-content{max-width:1440px;padding:clamp(24px,3vw,42px) clamp(18px,3.2vw,48px) 44px}
+/* Dashboard and reservations keep their existing layout proportions while sharing the same outer gutter rhythm. */
+.dashboard-concept.page-content{padding:clamp(24px,3vw,42px) clamp(18px,3.2vw,48px) 44px}
+.reservation-page.page-content{padding:clamp(24px,3vw,42px) clamp(18px,3.2vw,48px) 44px}
+@media(max-width:850px){.page-content{padding:28px 22px 38px}.dashboard-concept.page-content{padding:24px 18px 38px}.reservation-page.page-content{padding:28px 22px 38px}}
+@media(max-width:600px){.page-content{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}.dashboard-concept.page-content{padding:21px 13px calc(28px + env(safe-area-inset-bottom))}.reservation-page.page-content{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}}
