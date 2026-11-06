@@ -138,8 +138,8 @@ onMounted(load)
         <div class="modal-card-header">
           <div class="modal-card-art"><i class="pi pi-clone"></i><span class="art-glow"></span></div>
           <div class="modal-heading-copy"><p class="eyebrow"><i class="pi pi-box"></i> MAGAZZINO · PRENOTAZIONE</p>
-            <h2 id="reservation-title">Prenota questa carta</h2>
-            <p class="modal-card-name">{{ reservingRow.card.name }}</p>
+            <p class="reservation-intro">Prenota questa carta</p>
+            <h2 id="reservation-title" class="reservation-card-title">{{ reservingRow.card.name }}</h2>
           </div>
         </div>
         <div class="availability-pill"><i class="pi pi-clone"></i><span>Copie disponibili</span><strong>{{ available(reservingRow) }}</strong></div>
