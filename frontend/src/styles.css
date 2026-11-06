@@ -149,3 +149,15 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 :root[data-theme="light"] .reservation-card,:root[data-theme="light"] .reservation-empty{background:#fff;border-color:#e2d9f8;box-shadow:0 3px 12px #5533a20a}:root[data-theme="light"] .reservation-filters button{background:#fff;border-color:#ded4f6;color:#5d5673}:root[data-theme="light"] .reservation-filters button.selected{background:#eee5ff;border-color:#c7aaff;color:#6b28e8}:root[data-theme="light"] .secondary-button,:root[data-theme="light"] .modal-cancel{background:#fff;border-color:#ddd3f5;color:#39304f}:root[data-theme="light"] .secondary-button:hover:not(:disabled),:root[data-theme="light"] .modal-cancel:hover:not(:disabled){background:#f0eaff;border-color:#b99aff;color:#6323df}
 :root[data-theme="light"] .reservation-status{background:#eee5ff;color:#6b28e8}:root[data-theme="light"] .reservation-status.status-sold{background:#e0f8ed;color:#07834d}:root[data-theme="light"] .reservation-status.status-cancelled{background:#f0eff5;color:#77738d}:root[data-theme="light"] .reservation-empty a{color:#6b28e8}:root[data-theme="light"] .reservation-success{background:#e4f9ef;color:#087b4a}:root[data-theme="light"] .dashboard-error{background:#fff0f2;color:#a12d4c;border-color:#f2c4d0}
 @media(max-width:600px){:root[data-theme="light"] .sidebar{background:rgba(255,255,255,.94);border-top-color:#e2d9f8}:root[data-theme="light"] .sidebar .nav-item{color:#5b536e}:root[data-theme="light"] .sidebar .nav-item.active{background:#eee4ff;color:#6827e8}}
+
+/* Reservation KPI labels: keep icon, title, value and helper text in a clear vertical hierarchy. */
+.reservation-summary{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:16px;margin:18px 0 24px}
+.reservation-summary .metric-card{display:grid;grid-template-rows:auto auto auto;align-content:start;gap:9px;min-height:132px;padding:20px 22px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.reservation-summary .metric-top{display:flex;justify-content:flex-start;align-items:center;gap:10px;min-width:0}
+.reservation-summary .metric-top i{font-size:18px;flex:0 0 auto}
+.reservation-summary .metric-top span{display:block;font-size:13px;line-height:1.35;font-weight:600;color:var(--text);text-align:left;white-space:normal}
+.reservation-summary .metric-value{font-size:clamp(22px,2vw,28px);line-height:1.2;letter-spacing:-.35px;margin:0;text-align:left;color:var(--text)}
+.reservation-summary .metric-note{font-size:11px;line-height:1.4;color:var(--muted);margin:0;text-align:left}
+:root[data-theme="light"] .reservation-summary .metric-card{background:linear-gradient(145deg,#fff,#fbfaff);border-color:#e2d8fb;box-shadow:0 3px 10px #5533a20a}
+:root[data-theme="light"] .reservation-summary .metric-top span,:root[data-theme="light"] .reservation-summary .metric-value{color:#171526}
+@media(max-width:700px){.reservation-summary{grid-template-columns:1fr;gap:12px}.reservation-summary .metric-card{min-height:unset;padding:16px 18px}.reservation-summary .metric-value{font-size:24px}}
