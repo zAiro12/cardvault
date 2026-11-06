@@ -214,3 +214,10 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 .reservation-page .reservation-actions button{min-height:36px;border-radius:8px;padding:8px 12px;font-size:11px}
 .reservation-page .reservation-empty{border:0;border-radius:0;min-height:230px;background:transparent}
 @media(max-width:700px){.reservation-page .reservation-summary{grid-template-columns:1fr}.reservation-page .reservation-card{display:flex;flex-direction:column;align-items:stretch;gap:16px;padding:17px}.reservation-page .reservation-card-side{display:flex;align-items:flex-start;gap:9px}.reservation-page .reservation-status{grid-column:auto}.reservation-page .reservation-actions{width:100%;justify-content:flex-start}.reservation-page .reservation-toolbar{align-items:center;flex-direction:row;flex-wrap:wrap}.reservation-page .reservation-filters button{padding:8px 10px}}
+
+/* Simplify inventory separators: one subtle divider per card row, no nested reservation lines. */
+.inventory-table .reservation-entry{border-top:0!important;padding-top:0!important;margin-top:6px!important}
+.inventory-table tbody tr+tr td{border-top:1px solid color-mix(in srgb,var(--border) 62%,transparent)!important}
+.inventory-table tbody td{box-shadow:none!important}
+.table-wrap{border-color:color-mix(in srgb,var(--border) 55%,transparent)!important}
+.inventory-table thead th{border-bottom:1px solid color-mix(in srgb,var(--border) 65%,transparent)!important}
