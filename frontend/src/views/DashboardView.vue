@@ -63,12 +63,12 @@ onMounted(async () => {
       <div class="quick-action-grid">
         <RouterLink class="quick-action green" to="/inventory"><i class="pi pi-plus-circle"></i><span>Aggiungi carta</span></RouterLink>
         <RouterLink class="quick-action violet" to="/inventory"><i class="pi pi-qrcode"></i><span>Scansiona carta</span></RouterLink>
-        <RouterLink class="quick-action blue" to="/inventory"><i class="pi pi-calendar"></i><span>Vedi prenotazioni</span></RouterLink>
+        <RouterLink class="quick-action blue" to="/reservations"><i class="pi pi-calendar"></i><span>Vedi prenotazioni</span></RouterLink>
         <RouterLink class="quick-action purple" to="/inventory"><i class="pi pi-sync"></i><span>Aggiorna prezzi</span></RouterLink>
       </div>
     </section>
     <section class="recent-panel">
-      <div class="recent-heading"><h2>Ultime attività</h2><RouterLink to="/inventory">Vedi tutte <i class="pi pi-arrow-right"></i></RouterLink></div>
+      <div class="recent-heading"><h2>Ultime attività</h2><RouterLink to="/reservations">Vedi tutte <i class="pi pi-arrow-right"></i></RouterLink></div>
       <div class="activity-list">
         <article v-for="(activity, index) in activities" :key="activity.title+activity.detail+index" class="activity-row">
           <div class="activity-icon" :class="'activity-'+activity.tone"><i :class="activity.icon"></i></div>
