@@ -17,7 +17,7 @@ async function load() {
   loading.value = true; error.value = ''
   try {
     const inventory: InventoryRecord[] = await getInventory()
-    rows.value = inventory.flatMap(item => (item.reservations ?? []).map(reservation => ({ ...reservation, status: reservation.status as ReservationRecord['status'], cardName:item.card.name, setName:item.card.setName || 'Set non specificato', marketPrice:Number(item.marketPrice || 0), stock:item.quantity, condition:item.condition }))).sort((a,b)=>new Date(b.reservedAt).getTime()-new Date(a.reservedAt).getTime())
+    rows.value = inventory.flatMap(item => (item.reservations ?? []).map(reservation => ({ ...reservation, inventoryItemId:item.id, status: reservation.status as ReservationRecord['status'], cardName:item.card.name, setName:item.card.setName || 'Set non specificato', marketPrice:Number(item.marketPrice || 0), stock:item.quantity, condition:item.condition }))).sort((a,b)=>new Date(b.reservedAt).getTime()-new Date(a.reservedAt).getTime())
   } catch(e) { error.value = e instanceof Error ? e.message : 'Impossibile caricare le prenotazioni' }
   finally { loading.value = false }
 }
