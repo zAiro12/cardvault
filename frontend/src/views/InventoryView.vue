@@ -191,9 +191,9 @@ onMounted(load)
 </style>
 
 <style scoped>
-/* Anchor action controls to the full table-cell box so they remain centered even when reservation rows have different heights. */
-.inventory-table td.item-actions{position:relative;vertical-align:middle;text-align:center;border-bottom:0!important;padding:0!important;min-width:100px}
-.inventory-table td.item-actions .item-actions-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;margin:0}
+/* Keep the actions as a genuine table cell: the old flex positioning detached it from the row's table layout. Center the icon group naturally inside the cell. */
+.inventory-table td.item-actions{display:table-cell!important;position:static;vertical-align:middle!important;text-align:center;border-bottom:1px solid var(--border)!important;padding:13px 10px!important;min-width:100px}
+.inventory-table td.item-actions .item-actions-inner{display:inline-flex;align-items:center;justify-content:center;gap:12px;margin:0;vertical-align:middle}
 .inventory-table td.item-actions .icon-button{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:1px solid transparent;border-radius:9px;color:var(--muted);font-size:16px;line-height:1}
 .inventory-table td.item-actions .icon-button i{font-size:17px}
 .inventory-table td.item-actions .icon-button:hover{border-color:var(--border);background:var(--surface2);color:var(--text)}
