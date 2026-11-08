@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-const buildVersion = (() => { const now = new Date(); const pad = (value: number) => String(value).padStart(2, '0'); return `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}` })()
+declare const __BUILD_VERSION__: string
+const buildVersion = __BUILD_VERSION__
 import { useRoute } from 'vue-router'
 import { usePreferencesStore } from './stores/preferences'
 const preferences = usePreferencesStore()
