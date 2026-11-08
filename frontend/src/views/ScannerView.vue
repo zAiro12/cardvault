@@ -99,9 +99,9 @@ async function readCardText(canvas: HTMLCanvasElement) {
     await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.AUTO, preserve_interword_spaces: '1' })
     const { data } = await ocrWorker.recognize(cardCrop)
     ocrText.value = data.text.trim()
-    const lines = data.text.split(/\\r?\\n/)
-      .map(line => line.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim())
-      .filter(line => line.length >= 3 && /\\p{L}/u.test(line) && !/^\\d+[\\/.-]?\\d*$/u.test(line))
+    const lines = data.text.split(/\r?\n/)
+      .map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim())
+      .filter(line => line.length >= 3 && /\p{L}/u.test(line) && !/^\d+[\/.-]?\d*$/u.test(line))
     // The card title is normally the first text line on the card face.
     const candidate = lines[0]
     if (candidate) {
