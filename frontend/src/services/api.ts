@@ -35,6 +35,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+
+export type CardImageRecognition = { name: string; confidence: number; notes?: string | null }
+export async function recognizeCardImage(image: string, game: Game): Promise<CardImageRecognition> {
+  const result = await request<{ data: CardImageRecognition }>('/cards/recognize-image', { method: 'POST', body: JSON.stringify({ image, game }) })
+  return result.data
+}
+
 export async function getCards(): Promise<CardRecord[]> {
   const result = await request<{ data: CardRecord[] }>('/cards')
   return result.data
