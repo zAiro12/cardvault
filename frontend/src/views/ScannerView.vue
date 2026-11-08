@@ -84,7 +84,7 @@ async function readCardText(canvas: HTMLCanvasElement) {
     }
     const { data } = await ocrWorker.recognize(canvas)
     ocrText.value = data.text.trim()
-    const lines = data.text.split(/\\r?\\n/).map(line => line.replace(/[^\\p{L}\\p{N}’' -]/gu, '').trim()).filter(line => line.length >= 3)
+    const lines = data.text.split(/\r?\n/).map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, '').trim()).filter(line => line.length >= 3)
     if (lines.length) {
       query.value = lines[0]
       readingStatus.value = 'Testo letto: controlla il nome e cerca nel catalogo.'
