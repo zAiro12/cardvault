@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { createWorker, PSM } from 'tesseract.js'
-import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
+import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, recognizeCardImage, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
 const stream = ref<MediaStream | null>(null)
@@ -116,8 +116,26 @@ async function readCardText(canvas: HTMLCanvasElement) {
     ocrText.value = results.length ? results.map(r => `${r.text} (${Math.round(r.confidence)}%)`).join(' | ') : 'Nessun testo titolo leggibile nei ritagli.'
     if (best) {
       query.value = best.text
-      readingStatus.value = 'Suggerimento OCR locale: verifica/correggi il nome e premi Cerca nel catalogo.'
-    } else readingStatus.value = 'OCR locale non ha letto il titolo. Inserisci il nome manualmente.'
+      readingStatus.value = 'OCR locale: ' + best.text + '. Verifica il suggerimento…'
+    } else readingStatus.value = 'OCR locale non ha letto il titolo. Avvio riconoscimento visivo…'
+
+    // Use the captured full card image with server-side vision. The local OCR
+    // remains a fallback if the Vercel endpoint/API key is not configured.
+    if (capturedImage.value) {
+      readingStatus.value = 'Riconoscimento visivo AI in corso…'
+      try {
+        const vision = await recognizeCardImage(capturedImage.value, game.value)
+        if (vision.name && vision.confidence >= 0.35) {
+          query.value = vision.name
+          readingStatus.value = `Nome suggerito dall’AI: ${vision.name} (${Math.round(vision.confidence * 100)}%). Verifica e cerca nel catalogo.`
+          ocrText.value = `AI: ${vision.name} (${Math.round(vision.confidence * 100)}%)${vision.notes ? ' — ' + vision.notes : ''}\\nOCR locale: ${ocrText.value}`
+        } else {
+          readingStatus.value = 'AI non abbastanza sicura del titolo. Mantengo il suggerimento OCR locale: verifica o correggi il nome.'
+        }
+      } catch (visionError) {
+        readingStatus.value = 'Riconoscimento AI non disponibile (' + (visionError instanceof Error ? visionError.message : 'errore API') + '). Mantengo OCR locale: verifica/correggi il nome.'
+      }
+    }
   } catch (e) {
     readingStatus.value = 'Lettura OCR non riuscita. Puoi inserire il nome manualmente.'
     error.value = e instanceof Error ? e.message : 'Errore OCR'
