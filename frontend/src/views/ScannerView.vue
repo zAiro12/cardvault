@@ -89,42 +89,42 @@ async function readCardText(canvas: HTMLCanvasElement) {
     }
     // Evaluate several title-strip positions and image enhancements. Do not call
     // external AI services: recognition stays in-browser with Tesseract.
-    const variants = [
-      { x: 0.18, y: 0.16, w: 0.64, h: 0.12 },
-      { x: 0.12, y: 0.13, w: 0.76, h: 0.16 },
-      { x: 0.08, y: 0.08, w: 0.84, h: 0.22 },
-      { x: 0.20, y: 0.19, w: 0.60, h: 0.09 },
-      { x: 0.05, y: 0.00, w: 0.90, h: 0.30 }
-    ]
-    const results: Array<{ text: string; confidence: number; crop: number; mode: string }> = []
+    // Scan horizontal strips from top to bottom across the whole photograph.
+    // The physical card may occupy only the center of the camera frame; card-
+    // relative percentages were causing OCR to read its type/rules line.
+    const variants = Array.from({ length: 10 }, (_, index) => ({
+      x: 0.08, y: index * 0.075, w: 0.84, h: 0.13, row: index + 1
+    }))
+    const results: Array<{ text: string; confidence: number; crop: number; y: number; mode: string }> = []
     for (let index = 0; index < variants.length; index++) {
       const crop = variants[index]
       const cropped = document.createElement('canvas')
       const sx = Math.round(canvas.width * crop.x), sy = Math.round(canvas.height * crop.y)
       const sw = Math.round(canvas.width * crop.w), sh = Math.round(canvas.height * crop.h)
-      cropped.width = sw * 4; cropped.height = sh * 4
+      cropped.width = sw * 3; cropped.height = sh * 3
       const ctx = cropped.getContext('2d')
       if (!ctx) continue
-      ctx.filter = index % 2 === 0 ? 'grayscale(1) contrast(2)' : 'grayscale(1) contrast(1.45) brightness(1.08)'
+      ctx.filter = 'grayscale(1) contrast(1.8) brightness(1.06)'
       ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, cropped.width, cropped.height)
       ctx.filter = 'none'
-      for (const mode of [PSM.SINGLE_LINE, PSM.SINGLE_BLOCK]) {
-        await ocrWorker.setParameters({ tessedit_pageseg_mode: mode, preserve_interword_spaces: '1' })
-        const { data } = await ocrWorker.recognize(cropped)
-        const text = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
-        if (text.length >= 2 && /\p{L}/u.test(text)) results.push({ text, confidence: data.confidence, crop: index + 1, mode: String(mode) })
-      }
+      await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
+      const { data } = await ocrWorker.recognize(cropped)
+      const text = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
+      if (text.length >= 2 && /\p{L}/u.test(text)) results.push({ text, confidence: data.confidence, crop: crop.row, y: crop.y, mode: 'single-line' })
     }
-    // Favor high-confidence, compact name-like strings; show every candidate
-    // so the user can inspect rather than hiding OCR uncertainty.
-    results.sort((a, b) => (b.confidence - Math.min(b.text.length, 40)) - (a.confidence - Math.min(a.text.length, 40)))
+    // Prefer confident readable text from higher bands; all detected bands remain
+    // visible in diagnostics so OCR behavior can be evaluated transparently.
+    results.sort((a, b) => (b.confidence + Math.max(0, 45 - b.y * 100) * 0.12) - (a.confidence + Math.max(0, 45 - a.y * 100) * 0.12))
+    ocrText.value = results.length
+      ? results.slice(0, 10).map(r => `Fascia ${r.crop} (y=${Math.round(r.y * 100)}%): ${r.text} (${Math.round(r.confidence)}%)`).join(' | ')
+      : 'Nessun testo leggibile nelle fasce orizzontali della foto.'
     const best = results[0]
     ocrText.value = results.length
       ? results.slice(0, 8).map(r => `Ritaglio ${r.crop}: ${r.text} (${Math.round(r.confidence)}%)`).join(' | ')
       : 'Nessun testo titolo leggibile nei ritagli.'
     if (best && best.confidence >= 35) {
       query.value = best.text
-      readingStatus.value = `Suggerimento OCR locale (${Math.round(best.confidence)}%): verifica il nome e premi Cerca nel catalogo.`
+      readingStatus.value = `Suggerimento OCR locale (${Math.round(best.confidence)}%): controlla il testo delle fasce e verifica il nome prima della ricerca.`
     } else {
       query.value = ''
       readingStatus.value = 'OCR locale poco sicuro. Controlla i risultati testuali sotto, inserisci il nome e cerca nel catalogo.'
