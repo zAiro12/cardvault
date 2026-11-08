@@ -4,6 +4,10 @@ import { createWorker, PSM } from 'tesseract.js'
 import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
+const cropCanvas = ref<HTMLCanvasElement | null>(null)
+const cropSelection = ref({ x: 0, y: 0, w: 0, h: 0 })
+const cropDragging = ref(false)
+let cropStart = { x: 0, y: 0 }
 const stream = ref<MediaStream | null>(null)
 const cameraError = ref('')
 const cameraActive = ref(false)
@@ -70,8 +74,44 @@ function capture() {
   canvas.height = Math.round(sourceHeight * scale)
   canvas.getContext('2d')?.drawImage(video.value, 0, 0, canvas.width, canvas.height)
   capturedImage.value = canvas.toDataURL('image/jpeg', 0.96)
+  cropSelection.value = { x: 0, y: 0, w: 0, h: 0 }
   stopCamera()
-  void readCardText(canvas)
+  void nextTick().then(drawCapturedImage)
+}
+function canvasPoint(event: PointerEvent) {
+  const el = cropCanvas.value
+  if (!el) return { x: 0, y: 0 }
+  const rect = el.getBoundingClientRect()
+  return { x: Math.max(0, Math.min(el.width, (event.clientX - rect.left) * el.width / rect.width)), y: Math.max(0, Math.min(el.height, (event.clientY - rect.top) * el.height / rect.height)) }
+}
+async function drawCapturedImage() {
+  const el = cropCanvas.value
+  if (!el || !capturedImage.value) return
+  const img = new Image()
+  img.onload = () => { el.width = img.naturalWidth; el.height = img.naturalHeight; el.getContext('2d')?.drawImage(img, 0, 0) }
+  img.src = capturedImage.value
+}
+function cropPointerDown(event: PointerEvent) {
+  const el = cropCanvas.value
+  if (!el) return
+  el.setPointerCapture(event.pointerId)
+  cropDragging.value = true
+  cropStart = canvasPoint(event)
+  cropSelection.value = { x: cropStart.x, y: cropStart.y, w: 0, h: 0 }
+}
+function cropPointerMove(event: PointerEvent) {
+  if (!cropDragging.value) return
+  const p = canvasPoint(event)
+  cropSelection.value = { x: Math.min(cropStart.x, p.x), y: Math.min(cropStart.y, p.y), w: Math.abs(p.x - cropStart.x), h: Math.abs(p.y - cropStart.y) }
+}
+function cropPointerUp() { cropDragging.value = false }
+async function analyzeSelectedTitle() {
+  const el = cropCanvas.value, s = cropSelection.value
+  if (!el || s.w < 12 || s.h < 12) { error.value = 'Seleziona la fascia titolo sulla foto.'; return }
+  const crop = document.createElement('canvas')
+  crop.width = Math.round(s.w); crop.height = Math.round(s.h)
+  crop.getContext('2d')?.drawImage(el, s.x, s.y, s.w, s.h, 0, 0, crop.width, crop.height)
+  await readCardText(crop)
 }
 async function readCardText(canvas: HTMLCanvasElement) {
   reading.value = true
