@@ -146,11 +146,8 @@ async function readCardText(canvas: HTMLCanvasElement) {
       if (text.length >= 2 && /\\p{L}/u.test(text)) results.push({ text, confidence: data.confidence, mode: String(mode) })
     }
     results.sort((a, b) => b.confidence - a.confidence)
-    ocrText.value = results.length ? results.map(r => `Titolo selezionato: ${r.text} (${Math.round(r.confidence)}%, modalità ${r.mode})`).join(' | ') : 'Nessun testo leggibile nell’area titolo selezionata.'
+    ocrText.value = results.length ? results.map(r => `OCR ${r.mode}: ${r.text} (${Math.round(r.confidence)}%)`).join(' | ') : 'Nessun testo leggibile nell’area titolo selezionata.'
     const best = results[0]
-    ocrText.value = results.length
-      ? results.slice(0, 8).map(r => `Ritaglio ${r.crop}: ${r.text} (${Math.round(r.confidence)}%)`).join(' | ')
-      : 'Nessun testo titolo leggibile nei ritagli.'
     if (best && best.confidence >= 35) {
       query.value = best.text
       readingStatus.value = `Suggerimento OCR locale (${Math.round(best.confidence)}%): controlla il testo delle fasce e verifica il nome prima della ricerca.`
