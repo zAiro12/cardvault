@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { createWorker, PSM } from 'tesseract.js'
-import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, recognizeCardImage, type CardSuggestion } from '../services/api'
+import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
 const stream = ref<MediaStream | null>(null)
@@ -65,11 +65,11 @@ function capture() {
   const canvas = document.createElement('canvas')
   const sourceWidth = video.value.videoWidth
   const sourceHeight = video.value.videoHeight
-  const scale = Math.min(1, 1600 / Math.max(sourceWidth, sourceHeight))
+  const scale = Math.min(1, 2048 / Math.max(sourceWidth, sourceHeight))
   canvas.width = Math.round(sourceWidth * scale)
   canvas.height = Math.round(sourceHeight * scale)
   canvas.getContext('2d')?.drawImage(video.value, 0, 0, canvas.width, canvas.height)
-  capturedImage.value = canvas.toDataURL('image/jpeg', 0.84)
+  capturedImage.value = canvas.toDataURL('image/jpeg', 0.96)
   stopCamera()
   void readCardText(canvas)
 }
@@ -87,54 +87,47 @@ async function readCardText(canvas: HTMLCanvasElement) {
         else if (event.status === 'recognizing text') readingStatus.value = 'Analisi OCR locale…'
       } })
     }
-    // Run a few geometrically distinct title-band crops instead of betting on
-    // one fixed crop. Select OCR output by confidence and useful title length.
+    // Evaluate several title-strip positions and image enhancements. Do not call
+    // external AI services: recognition stays in-browser with Tesseract.
     const variants = [
-      { x: 0.10, y: 0.04, w: 0.80, h: 0.25 },
-      { x: 0.15, y: 0.08, w: 0.70, h: 0.20 },
-      { x: 0.05, y: 0.00, w: 0.90, h: 0.32 },
-      { x: 0.15, y: 0.15, w: 0.70, h: 0.16 }
+      { x: 0.18, y: 0.16, w: 0.64, h: 0.12 },
+      { x: 0.12, y: 0.13, w: 0.76, h: 0.16 },
+      { x: 0.08, y: 0.08, w: 0.84, h: 0.22 },
+      { x: 0.20, y: 0.19, w: 0.60, h: 0.09 },
+      { x: 0.05, y: 0.00, w: 0.90, h: 0.30 }
     ]
-    const results: Array<{ text: string; confidence: number }> = []
-    for (const crop of variants) {
+    const results: Array<{ text: string; confidence: number; crop: number; mode: string }> = []
+    for (let index = 0; index < variants.length; index++) {
+      const crop = variants[index]
       const cropped = document.createElement('canvas')
       const sx = Math.round(canvas.width * crop.x), sy = Math.round(canvas.height * crop.y)
       const sw = Math.round(canvas.width * crop.w), sh = Math.round(canvas.height * crop.h)
-      cropped.width = sw * 3; cropped.height = sh * 3
+      cropped.width = sw * 4; cropped.height = sh * 4
       const ctx = cropped.getContext('2d')
       if (!ctx) continue
-      ctx.filter = 'grayscale(1) contrast(1.7)'
+      ctx.filter = index % 2 === 0 ? 'grayscale(1) contrast(2)' : 'grayscale(1) contrast(1.45) brightness(1.08)'
       ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, cropped.width, cropped.height)
       ctx.filter = 'none'
-      await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
-      const { data } = await ocrWorker.recognize(cropped)
-      const text = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
-      if (text.length >= 2 && /\p{L}/u.test(text)) results.push({ text, confidence: data.confidence })
-    }
-    results.sort((a, b) => (b.confidence + Math.min(b.text.length, 24)) - (a.confidence + Math.min(a.text.length, 24)))
-    const best = results[0]
-    ocrText.value = results.length ? results.map(r => `${r.text} (${Math.round(r.confidence)}%)`).join(' | ') : 'Nessun testo titolo leggibile nei ritagli.'
-    if (best) {
-      query.value = best.text
-      readingStatus.value = 'OCR locale: ' + best.text + '. Verifica il suggerimento…'
-    } else readingStatus.value = 'OCR locale non ha letto il titolo. Avvio riconoscimento visivo…'
-
-    // Use the captured full card image with server-side vision. The local OCR
-    // remains a fallback if the Vercel endpoint/API key is not configured.
-    if (capturedImage.value) {
-      readingStatus.value = 'Riconoscimento visivo AI in corso…'
-      try {
-        const vision = await recognizeCardImage(capturedImage.value, game.value)
-        if (vision.name && vision.confidence >= 0.35) {
-          query.value = vision.name
-          readingStatus.value = `Nome suggerito dall’AI: ${vision.name} (${Math.round(vision.confidence * 100)}%). Verifica e cerca nel catalogo.`
-          ocrText.value = `AI: ${vision.name} (${Math.round(vision.confidence * 100)}%)${vision.notes ? ' — ' + vision.notes : ''}\\nOCR locale: ${ocrText.value}`
-        } else {
-          readingStatus.value = 'AI non abbastanza sicura del titolo. Mantengo il suggerimento OCR locale: verifica o correggi il nome.'
-        }
-      } catch (visionError) {
-        readingStatus.value = 'Riconoscimento AI non disponibile (' + (visionError instanceof Error ? visionError.message : 'errore API') + '). Mantengo OCR locale: verifica/correggi il nome.'
+      for (const mode of [PSM.SINGLE_LINE, PSM.SINGLE_BLOCK]) {
+        await ocrWorker.setParameters({ tessedit_pageseg_mode: mode, preserve_interword_spaces: '1' })
+        const { data } = await ocrWorker.recognize(cropped)
+        const text = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
+        if (text.length >= 2 && /\p{L}/u.test(text)) results.push({ text, confidence: data.confidence, crop: index + 1, mode: String(mode) })
       }
+    }
+    // Favor high-confidence, compact name-like strings; show every candidate
+    // so the user can inspect rather than hiding OCR uncertainty.
+    results.sort((a, b) => (b.confidence - Math.min(b.text.length, 40)) - (a.confidence - Math.min(a.text.length, 40)))
+    const best = results[0]
+    ocrText.value = results.length
+      ? results.slice(0, 8).map(r => `Ritaglio ${r.crop}: ${r.text} (${Math.round(r.confidence)}%)`).join(' | ')
+      : 'Nessun testo titolo leggibile nei ritagli.'
+    if (best && best.confidence >= 35) {
+      query.value = best.text
+      readingStatus.value = `Suggerimento OCR locale (${Math.round(best.confidence)}%): verifica il nome e premi Cerca nel catalogo.`
+    } else {
+      query.value = ''
+      readingStatus.value = 'OCR locale poco sicuro. Controlla i risultati testuali sotto, inserisci il nome e cerca nel catalogo.'
     }
   } catch (e) {
     readingStatus.value = 'Lettura OCR non riuscita. Puoi inserire il nome manualmente.'
