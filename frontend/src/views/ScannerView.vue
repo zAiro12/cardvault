@@ -86,9 +86,9 @@ async function readCardText(canvas: HTMLCanvasElement) {
     // picks up collector numbers, rules text, or neighboring cards).
     const titleCrop = document.createElement('canvas')
     const cropX = Math.round(canvas.width * 0.27)
-    const cropY = Math.round(canvas.height * 0.15)
+    const cropY = Math.round(canvas.height * 0.39)
     const cropWidth = Math.round(canvas.width * 0.46)
-    const cropHeight = Math.round(canvas.height * 0.12)
+    const cropHeight = Math.round(canvas.height * 0.10)
     titleCrop.width = cropWidth * 4
     titleCrop.height = cropHeight * 4
     const cropContext = titleCrop.getContext('2d')
