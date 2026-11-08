@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { createWorker, PSM } from 'tesseract.js'
-import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
+import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, recognizeCardImage, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
 const stream = ref<MediaStream | null>(null)
@@ -63,56 +63,74 @@ function stopCamera() {
 function capture() {
   if (!video.value) return
   const canvas = document.createElement('canvas')
-  canvas.width = video.value.videoWidth
-  canvas.height = video.value.videoHeight
+  const sourceWidth = video.value.videoWidth
+  const sourceHeight = video.value.videoHeight
+  const scale = Math.min(1, 1600 / Math.max(sourceWidth, sourceHeight))
+  canvas.width = Math.round(sourceWidth * scale)
+  canvas.height = Math.round(sourceHeight * scale)
   canvas.getContext('2d')?.drawImage(video.value, 0, 0, canvas.width, canvas.height)
-  capturedImage.value = canvas.toDataURL('image/jpeg', 0.96)
+  capturedImage.value = canvas.toDataURL('image/jpeg', 0.84)
   stopCamera()
   void readCardText(canvas)
 }
 async function readCardText(canvas: HTMLCanvasElement) {
   reading.value = true
-  readingStatus.value = 'Sto leggendo il testo della carta…'
+  readingStatus.value = 'Analisi visiva della carta…'
   error.value = ''
+  ocrText.value = ''
+  query.value = ''
   try {
+    // Prefer vision model, which reads the printed title in context. This avoids
+    // selecting collector numbers or type/rules text as the card name.
+    const image = canvas.toDataURL('image/jpeg', 0.84)
+    try {
+      const result = await recognizeCardImage(image, game.value)
+      ocrText.value = result.name ? `Titolo riconosciuto: ${result.name} (confidenza ${Math.round(result.confidence * 100)}%)` : result.notes || 'Il modello non ha individuato un titolo leggibile.'
+      if (result.name && result.confidence >= 0.45) {
+        query.value = result.name
+        readingStatus.value = `Titolo identificato dall’AI (${Math.round(result.confidence * 100)}%): verifica e cerca nel catalogo.`
+        await searchCards()
+        return
+      }
+      readingStatus.value = 'AI: titolo incerto. Inserisci o correggi il nome prima della ricerca.'
+      return
+    } catch (visionError) {
+      readingStatus.value = visionError instanceof Error && visionError.message.includes('OPENAI_API_KEY')
+        ? 'AI non configurata sul backend: uso OCR locale come fallback.'
+        : 'Riconoscimento AI non disponibile: uso OCR locale come fallback.'
+    }
+
     if (!ocrWorker) {
       ocrWorker = await createWorker('eng', 1, { logger: event => {
         if (event.status === 'loading tesseract core') readingStatus.value = 'Caricamento motore OCR…'
         else if (event.status === 'loading language traineddata') readingStatus.value = 'Caricamento lingua…'
-        else if (event.status === 'recognizing text') readingStatus.value = 'Analisi immagine…'
+        else if (event.status === 'recognizing text') readingStatus.value = 'Analisi OCR…'
       } })
     }
-    // OCR the full card face (not a fixed title strip). The user can inspect
-    // the complete recognized text and edit the name before catalog lookup.
-    const cardCrop = document.createElement('canvas')
+    const titleCrop = document.createElement('canvas')
     const cropX = Math.round(canvas.width * 0.18)
     const cropY = Math.round(canvas.height * 0.08)
     const cropWidth = Math.round(canvas.width * 0.64)
-    const cropHeight = Math.round(canvas.height * 0.84)
-    cardCrop.width = cropWidth * 2
-    cardCrop.height = cropHeight * 2
-    const cropContext = cardCrop.getContext('2d')
-    if (!cropContext) throw new Error('Impossibile preparare il ritaglio OCR')
-    cropContext.filter = 'grayscale(1) contrast(1.45)'
-    cropContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cardCrop.width, cardCrop.height)
-    cropContext.filter = 'none'
-    await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.AUTO, preserve_interword_spaces: '1' })
-    const { data } = await ocrWorker.recognize(cardCrop)
+    const cropHeight = Math.round(canvas.height * 0.18)
+    titleCrop.width = cropWidth * 3
+    titleCrop.height = cropHeight * 3
+    const context = titleCrop.getContext('2d')
+    if (!context) throw new Error('Impossibile preparare il ritaglio OCR')
+    context.filter = 'grayscale(1) contrast(1.6)'
+    context.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, titleCrop.width, titleCrop.height)
+    context.filter = 'none'
+    await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
+    const { data } = await ocrWorker.recognize(titleCrop)
     ocrText.value = data.text.trim()
-    const lines = data.text.split(/\r?\n/)
-      .map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim())
-      .filter(line => line.length >= 3 && /\p{L}/u.test(line) && !/^\d+[\/.-]?\d*$/u.test(line))
-    // The card title is normally the first text line on the card face.
-    const candidate = lines[0]
-    if (candidate) {
+    const candidate = data.text.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim()
+    if (candidate.length >= 3 && /\\p{L}/u.test(candidate)) {
       query.value = candidate
-      readingStatus.value = 'Testo letto dalla carta intera: verifica il nome e cerca nel catalogo.'
-      await searchCards()
+      readingStatus.value = 'Suggerimento OCR locale (da verificare): correggi il nome e cerca nel catalogo.'
     } else {
-      readingStatus.value = 'Non ho riconosciuto testo sulla carta. Inserisci il nome manualmente e cerca nel catalogo.'
+      readingStatus.value = 'OCR locale non ha letto il titolo. Inserisci il nome manualmente.'
     }
   } catch (e) {
-    readingStatus.value = 'Lettura automatica non riuscita. Puoi comunque cercare il nome manualmente.'
+    readingStatus.value = 'Lettura automatica non riuscita. Puoi inserire il nome manualmente.'
     error.value = e instanceof Error ? e.message : 'Errore OCR'
   } finally { reading.value = false }
 }
