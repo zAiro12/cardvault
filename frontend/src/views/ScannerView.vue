@@ -82,15 +82,29 @@ async function readCardText(canvas: HTMLCanvasElement) {
         else if (event.status === 'recognizing text') readingStatus.value = 'Analisi immagine…'
       } })
     }
-    const { data } = await ocrWorker.recognize(canvas)
+    // Focus OCR on the card title strip instead of the entire frame (which often
+    // picks up collector numbers, rules text, or neighboring cards).
+    const titleCrop = document.createElement('canvas')
+    const cropX = Math.round(canvas.width * 0.2)
+    const cropY = Math.round(canvas.height * 0.04)
+    const cropWidth = Math.round(canvas.width * 0.6)
+    const cropHeight = Math.round(canvas.height * 0.24)
+    titleCrop.width = cropWidth * 3
+    titleCrop.height = cropHeight * 3
+    const cropContext = titleCrop.getContext('2d')
+    if (!cropContext) throw new Error('Impossibile preparare il ritaglio OCR')
+    cropContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, titleCrop.width, titleCrop.height)
+    await ocrWorker.setParameters({ tessedit_pageseg_mode: '7', preserve_interword_spaces: '1' })
+    const { data } = await ocrWorker.recognize(titleCrop)
     ocrText.value = data.text.trim()
     const lines = data.text.split(/\r?\n/).map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, '').trim()).filter(line => line.length >= 3)
-    if (lines.length) {
-      query.value = lines[0]
-      readingStatus.value = 'Testo letto: controlla il nome e cerca nel catalogo.'
+    const candidate = lines.sort((a, b) => b.length - a.length)[0]
+    if (candidate) {
+      query.value = candidate
+      readingStatus.value = 'Nome letto dalla fascia titolo: controlla il risultato e cerca nel catalogo.'
       await searchCards()
     } else {
-      readingStatus.value = 'Non ho riconosciuto il nome. Inseriscilo manualmente e cerca nel catalogo.'
+      readingStatus.value = 'Non ho letto la fascia titolo. Inserisci il nome manualmente e cerca nel catalogo.'
     }
   } catch (e) {
     readingStatus.value = 'Lettura automatica non riuscita. Puoi comunque cercare il nome manualmente.'
