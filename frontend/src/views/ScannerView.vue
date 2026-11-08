@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { createWorker } from 'tesseract.js'
 import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
@@ -17,6 +18,10 @@ const location = ref('')
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
+const reading = ref(false)
+const readingStatus = ref('')
+const ocrText = ref('')
+let ocrWorker: Awaited<ReturnType<typeof createWorker>> | null = null
 const game = ref<'MAGIC'|'POKEMON'|'YU_GI_OH'|'LORCANA'|'OTHER'>('MAGIC')
 const canUseCamera = computed(() => !!navigator.mediaDevices?.getUserMedia)
 
@@ -27,7 +32,7 @@ async function startCamera() {
     return
   }
   try {
-    const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30, max: 60 } }, audio: false })
     stream.value = media
     cameraActive.value = true
     await nextTick()
@@ -61,10 +66,38 @@ function capture() {
   canvas.width = video.value.videoWidth
   canvas.height = video.value.videoHeight
   canvas.getContext('2d')?.drawImage(video.value, 0, 0, canvas.width, canvas.height)
-  capturedImage.value = canvas.toDataURL('image/jpeg', 0.88)
+  capturedImage.value = canvas.toDataURL('image/jpeg', 0.96)
   stopCamera()
+  void readCardText(canvas)
 }
-function retake() { capturedImage.value = ''; startCamera() }
+async function readCardText(canvas: HTMLCanvasElement) {
+  reading.value = true
+  readingStatus.value = 'Sto leggendo il testo della carta…'
+  error.value = ''
+  try {
+    if (!ocrWorker) {
+      ocrWorker = await createWorker('eng', 1, { logger: event => {
+        if (event.status === 'loading tesseract core') readingStatus.value = 'Caricamento motore OCR…'
+        else if (event.status === 'loading language traineddata') readingStatus.value = 'Caricamento lingua…'
+        else if (event.status === 'recognizing text') readingStatus.value = 'Analisi immagine…'
+      } })
+    }
+    const { data } = await ocrWorker.recognize(canvas)
+    ocrText.value = data.text.trim()
+    const lines = data.text.split(/\r?\n/).map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, '').trim()).filter(line => line.length >= 3)
+    if (lines.length) {
+      query.value = lines[0]
+      readingStatus.value = 'Testo letto: controlla il nome e cerca nel catalogo.'
+      await searchCards()
+    } else {
+      readingStatus.value = 'Non ho riconosciuto il nome. Inseriscilo manualmente e cerca nel catalogo.'
+    }
+  } catch (e) {
+    readingStatus.value = 'Lettura automatica non riuscita. Puoi comunque cercare il nome manualmente.'
+    error.value = e instanceof Error ? e.message : 'Errore OCR'
+  } finally { reading.value = false }
+}
+function retake() { capturedImage.value = ''; ocrText.value = ''; readingStatus.value = ''; startCamera() }
 async function searchCards() {
   if (query.value.trim().length < 2) { suggestions.value = []; return }
   searching.value = true; error.value = ''
@@ -86,7 +119,7 @@ async function addToInventory() {
     } catch { /* price can be filled in later */ }
     await addInventory({ cardId: card.id, quantity: quantity.value, condition: condition.value, marketPrice, location: location.value.trim() || undefined })
     success.value = 'Carta aggiunta al magazzino!'
-    selected.value = null; query.value = ''; capturedImage.value = ''; quantity.value = 1; location.value = ''
+    selected.value = null; query.value = ''; capturedImage.value = ''; ocrText.value = ''; readingStatus.value = ''; quantity.value = 1; location.value = ''
   } catch (e) { error.value = e instanceof Error ? e.message : 'Salvataggio carta non riuscito' }
   finally { saving.value = false }
 }
@@ -108,7 +141,7 @@ onBeforeUnmount(stopCamera)
           <div v-else class="camera-placeholder"><i class="pi pi-camera"></i><strong>Pronto per scansionare</strong><span>Posiziona la carta al centro dell'inquadratura.</span></div>
           <div v-if="cameraActive" class="scan-frame" aria-hidden="true"><span></span></div>
         </div>
-        <p v-if="cameraError" class="notice error">{{ cameraError }}</p>
+        <p v-if="cameraError" class="notice error">{{ cameraError }}</p><p v-if="readingStatus" class="scanner-hint" aria-live="polite">{{ readingStatus }}</p>
         <div class="camera-actions">
           <button v-if="!cameraActive && !capturedImage" class="primary-button" :disabled="!canUseCamera" @click="startCamera"><i class="pi pi-video"></i> Avvia fotocamera</button>
           <button v-if="cameraActive" class="primary-button" @click="capture"><i class="pi pi-camera"></i> Scatta foto</button>
@@ -128,7 +161,7 @@ onBeforeUnmount(stopCamera)
           <label>Nome carta<input v-model="query" placeholder="Es. Agatha of the Vile Cauldron" autocomplete="off"/></label>
           <button class="primary-button" type="submit" :disabled="searching || query.trim().length < 2">{{ searching ? 'Ricerca…' : 'Cerca nel catalogo' }}</button>
         </form>
-        <div v-if="suggestions.length" class="scanner-results">
+        <div v-if="ocrText" class="scanner-ocr-result"><label>Testo letto dalla foto<textarea v-model="ocrText" rows="3" readonly></textarea></label><small>Il nome suggerito è modificabile nel campo “Nome carta” qui sotto.</small></div>\n        <div v-if="suggestions.length" class="scanner-results">
           <button v-for="print in suggestions" :key="print.scryfallId" class="scanner-result" @click="choose(print)">
             <img v-if="print.imageUrl" :src="print.imageUrl" alt=""/>
             <span><strong>{{ print.name }}</strong><small>{{ print.setName }} · {{ print.setCode.toUpperCase() }} · #{{ print.collectorNumber }} · {{ print.language.toUpperCase() }}<span v-if="print.foil"> · Foil</span></small></span>
