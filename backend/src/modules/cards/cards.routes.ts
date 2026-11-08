@@ -83,6 +83,46 @@ cardsRouter.get('/autocomplete', async (req, res, next) => {
   } catch (error) { return next(error) }
 })
 
+
+cardsRouter.post('/recognize-image', async (req, res, next) => {
+  const image = typeof req.body?.image === 'string' ? req.body.image : ''
+  const game = typeof req.body?.game === 'string' ? req.body.game : 'MAGIC'
+  if (!/^data:image\/(jpeg|png|webp);base64,/.test(image)) return res.status(400).json({ error: 'Immagine JPEG, PNG o WebP richiesta.' })
+  if (image.length > 8_000_000) return res.status(413).json({ error: 'Immagine troppo grande. Riduci la foto e riprova.' })
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return res.status(503).json({ error: 'OPENAI_API_KEY non configurata su Vercel. OCR locale disponibile come fallback.' })
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: process.env.OPENAI_CARD_MODEL || 'gpt-4o-mini',
+        input: [{
+          role: 'user',
+          content: [
+            { type: 'input_text', text: `Identify this physical trading card. Game: ${game}. Read ONLY the printed card title/name from the top title bar, not collector number, type line, rules text, artist, or surrounding cards. Return strict JSON only: {"name":"exact card title","confidence":0.0,"notes":"brief reason if uncertain"}. If unreadable, name must be empty. Preserve original title language. Do not guess.` },
+            { type: 'input_image', image_url: image, detail: 'high' }
+          ]
+        }],
+        max_output_tokens: 180
+      }),
+      signal: AbortSignal.timeout(25000)
+    })
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(`OpenAI vision error ${response.status}: ${body.slice(0, 300)}`)
+    }
+    const result = await response.json() as { output?: Array<{ content?: Array<{ type?: string; text?: string }> }> }
+    const text = result.output?.flatMap(item => item.content ?? []).find(item => item.type === 'output_text')?.text ?? ''
+    const parsedText = text.replace(/^\s*```json\s*/i, '').replace(/\s*```\s*$/, '')
+    const parsed = JSON.parse(parsedText) as { name?: string; confidence?: number; notes?: string }
+    const name = typeof parsed.name === 'string' ? parsed.name.trim().slice(0, 200) : ''
+    const confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0
+    return res.json({ data: { name, confidence, notes: typeof parsed.notes === 'string' ? parsed.notes.slice(0, 300) : null } })
+  } catch (error) { return next(error) }
+})
+
 cardsRouter.get('/market-price', async (req, res, next) => {
   const scryfallId = typeof req.query.scryfallId === 'string' ? req.query.scryfallId : ''
   const cardName = typeof req.query.cardName === 'string' ? req.query.cardName.trim() : ''
