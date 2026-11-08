@@ -225,3 +225,10 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 
 /* Small, centered build version in the footer of every view. */
 .app-version{display:block;width:100%;text-align:center;font-size:10px;line-height:1.4;letter-spacing:.04em;color:var(--text-muted,#9293aa);opacity:.72;padding:8px 0 10px;margin-top:8px;}
+
+
+/* iPhone/iPad safe area: keep page content and version footer clear of the Home indicator. */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .main-area { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+  .app-version { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+}
