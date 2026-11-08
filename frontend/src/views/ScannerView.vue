@@ -7,6 +7,7 @@ const video = ref<HTMLVideoElement | null>(null)
 const cropCanvas = ref<HTMLCanvasElement | null>(null)
 const cropSelection = ref({ x: 0, y: 0, w: 0, h: 0 })
 const cropDragging = ref(false)
+const selectionStyle = computed(() => { const w = cropCanvas.value?.width || 1, h = cropCanvas.value?.height || 1; return { left: `${cropSelection.value.x / w * 100}%`, top: `${cropSelection.value.y / h * 100}%`, width: `${cropSelection.value.w / w * 100}%`, height: `${cropSelection.value.h / h * 100}%` } })
 let cropStart = { x: 0, y: 0 }
 const stream = ref<MediaStream | null>(null)
 const cameraError = ref('')
@@ -202,7 +203,7 @@ onBeforeUnmount(stopCamera)
         <div class="panel-heading"><div><h2><i class="pi pi-camera"></i> Fotocamera</h2><p>Usa la fotocamera posteriore del dispositivo, se disponibile.</p></div></div>
         <div class="camera-stage">
           <video v-if="cameraActive" ref="video" autoplay muted playsinline></video>
-          <img v-else-if="capturedImage" :src="capturedImage" alt="Foto acquisita della carta"/>
+          <div v-else-if="capturedImage" class="crop-select-wrap"><canvas ref="cropCanvas" class="crop-select-canvas" @pointerdown="cropPointerDown" @pointermove="cropPointerMove" @pointerup="cropPointerUp" @pointercancel="cropPointerUp"></canvas><div v-if="cropSelection.w > 0 && cropSelection.h > 0" class="crop-selection" :style="selectionStyle"></div></div>
           <div v-else class="camera-placeholder"><i class="pi pi-camera"></i><strong>Pronto per scansionare</strong><span>Posiziona la carta al centro dell'inquadratura.</span></div>
           <div v-if="cameraActive" class="scan-frame" aria-hidden="true"><span></span></div>
         </div>
@@ -211,7 +212,7 @@ onBeforeUnmount(stopCamera)
           <button v-if="!cameraActive && !capturedImage" class="primary-button" :disabled="!canUseCamera" @click="startCamera"><i class="pi pi-video"></i> Avvia fotocamera</button>
           <button v-if="cameraActive" class="primary-button" @click="capture"><i class="pi pi-camera"></i> Scatta foto</button>
           <button v-if="cameraActive" class="secondary-button" @click="stopCamera">Chiudi camera</button>
-          <button v-if="capturedImage" class="secondary-button" @click="retake"><i class="pi pi-refresh"></i> Riprova</button>
+          <button v-if="capturedImage" class="primary-button" :disabled="reading || cropSelection.w < 12 || cropSelection.h < 12" @click="analyzeSelectedTitle"><i class="pi pi-search"></i> Leggi fascia titolo</button><button v-if="capturedImage" class="secondary-button" @click="retake"><i class="pi pi-refresh"></i> Riprova</button>
         </div>
         <p class="scanner-hint"><i class="pi pi-info-circle"></i> La foto è una guida visiva: per ora la stampa viene confermata tramite ricerca catalogo.</p>
       </section>
@@ -252,7 +253,7 @@ onBeforeUnmount(stopCamera)
 .scanner-page{padding:clamp(24px,3vw,40px);max-width:1500px}.scanner-page .page-heading{margin-bottom:22px}.scanner-page .page-heading h1{font:800 clamp(27px,2.2vw,34px) Manrope,sans-serif;letter-spacing:-.7px}.scanner-page .subtitle{margin-top:7px;color:var(--muted)}
 .scanner-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}.scanner-camera-panel,.scanner-find-panel{padding:22px;border:1px solid var(--border);border-radius:16px;background:var(--surface)}
 .panel-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.panel-heading h2{font:700 17px Manrope,sans-serif;margin:0;color:var(--text);display:flex;gap:9px;align-items:center}.panel-heading h2 i{color:var(--accent)}.panel-heading p{font-size:12px;color:var(--muted);margin:5px 0 0}
-.camera-stage{position:relative;aspect-ratio:4/3;border-radius:13px;overflow:hidden;background:#090a12;border:1px solid var(--border);display:grid;place-items:center}.camera-stage video,.camera-stage img{width:100%;height:100%;object-fit:contain}.camera-placeholder{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;text-align:center;color:var(--muted)}.camera-placeholder i{font-size:42px;color:var(--accent)}.camera-placeholder strong{color:var(--text)}.camera-placeholder span{font-size:12px}
+.camera-stage{position:relative;aspect-ratio:4/3;border-radius:13px;overflow:hidden;background:#090a12;border:1px solid var(--border);display:grid;place-items:center}.camera-stage video,.camera-stage img{width:100%;height:100%;object-fit:contain}.crop-select-wrap{position:relative;width:100%;height:100%;display:grid;place-items:center}.crop-select-canvas{width:100%;height:100%;object-fit:contain;touch-action:none;cursor:crosshair}.crop-selection{position:absolute;border:2px solid #a78aff;background:#a78aff22;pointer-events:none;box-shadow:0 0 0 100vmax #0003}.camera-placeholder{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;text-align:center;color:var(--muted)}.camera-placeholder i{font-size:42px;color:var(--accent)}.camera-placeholder strong{color:var(--text)}.camera-placeholder span{font-size:12px}
 .scan-frame{position:absolute;inset:10% 25%;border:2px solid #a78aff;border-radius:12px;box-shadow:0 0 0 100vmax #0003;pointer-events:none}.scan-frame span{position:absolute;top:50%;left:0;right:0;height:1px;background:#a78aff80}
 .camera-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}.scanner-hint{font-size:11px;color:var(--muted);display:flex;gap:7px;margin:14px 0 0}.scanner-hint i{color:var(--accent)}
 .scanner-find-panel>label,.scanner-search label,.scanner-add-fields label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600;color:var(--text)}.scanner-find-panel select,.scanner-search input,.scanner-add-fields input,.scanner-add-fields select{width:100%;min-width:0;padding:11px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text);outline-color:var(--accent)}
