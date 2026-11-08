@@ -108,8 +108,8 @@ async function readCardText(canvas: HTMLCanvasElement) {
       ctx.filter = 'none'
       await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
       const { data } = await ocrWorker.recognize(cropped)
-      const text = data.text.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim()
-      if (text.length >= 2 && /\\p{L}/u.test(text)) results.push({ text, confidence: data.confidence })
+      const text = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
+      if (text.length >= 2 && /\p{L}/u.test(text)) results.push({ text, confidence: data.confidence })
     }
     results.sort((a, b) => (b.confidence + Math.min(b.text.length, 24)) - (a.confidence + Math.min(a.text.length, 24)))
     const best = results[0]
