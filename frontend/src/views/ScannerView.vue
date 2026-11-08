@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { createWorker, PSM } from 'tesseract.js'
-import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, recognizeCardImage, type CardSuggestion } from '../services/api'
+import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
 const stream = ref<MediaStream | null>(null)
@@ -75,62 +75,51 @@ function capture() {
 }
 async function readCardText(canvas: HTMLCanvasElement) {
   reading.value = true
-  readingStatus.value = 'Analisi visiva della carta…'
+  readingStatus.value = 'Analisi OCR locale…'
   error.value = ''
   ocrText.value = ''
   query.value = ''
   try {
-    // Prefer vision model, which reads the printed title in context. This avoids
-    // selecting collector numbers or type/rules text as the card name.
-    const image = canvas.toDataURL('image/jpeg', 0.84)
-    try {
-      const result = await recognizeCardImage(image, game.value)
-      ocrText.value = result.name ? `Titolo riconosciuto: ${result.name} (confidenza ${Math.round(result.confidence * 100)}%)` : result.notes || 'Il modello non ha individuato un titolo leggibile.'
-      if (result.name && result.confidence >= 0.45) {
-        query.value = result.name
-        readingStatus.value = `Titolo identificato dall’AI (${Math.round(result.confidence * 100)}%): verifica e cerca nel catalogo.`
-        await searchCards()
-        return
-      }
-      readingStatus.value = 'AI: titolo incerto. Inserisci o correggi il nome prima della ricerca.'
-      return
-    } catch (visionError) {
-      readingStatus.value = visionError instanceof Error && visionError.message.includes('OPENAI_API_KEY')
-        ? 'AI non configurata sul backend: uso OCR locale come fallback.'
-        : 'Riconoscimento AI non disponibile: uso OCR locale come fallback.'
-    }
-
     if (!ocrWorker) {
       ocrWorker = await createWorker('eng', 1, { logger: event => {
         if (event.status === 'loading tesseract core') readingStatus.value = 'Caricamento motore OCR…'
         else if (event.status === 'loading language traineddata') readingStatus.value = 'Caricamento lingua…'
-        else if (event.status === 'recognizing text') readingStatus.value = 'Analisi OCR…'
+        else if (event.status === 'recognizing text') readingStatus.value = 'Analisi OCR locale…'
       } })
     }
-    const titleCrop = document.createElement('canvas')
-    const cropX = Math.round(canvas.width * 0.18)
-    const cropY = Math.round(canvas.height * 0.08)
-    const cropWidth = Math.round(canvas.width * 0.64)
-    const cropHeight = Math.round(canvas.height * 0.18)
-    titleCrop.width = cropWidth * 3
-    titleCrop.height = cropHeight * 3
-    const context = titleCrop.getContext('2d')
-    if (!context) throw new Error('Impossibile preparare il ritaglio OCR')
-    context.filter = 'grayscale(1) contrast(1.6)'
-    context.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, titleCrop.width, titleCrop.height)
-    context.filter = 'none'
-    await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
-    const { data } = await ocrWorker.recognize(titleCrop)
-    ocrText.value = data.text.trim()
-    const candidate = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
-    if (candidate.length >= 3 && /\p{L}/u.test(candidate)) {
-      query.value = candidate
-      readingStatus.value = 'Suggerimento OCR locale (da verificare): correggi il nome e cerca nel catalogo.'
-    } else {
-      readingStatus.value = 'OCR locale non ha letto il titolo. Inserisci il nome manualmente.'
+    // Run a few geometrically distinct title-band crops instead of betting on
+    // one fixed crop. Select OCR output by confidence and useful title length.
+    const variants = [
+      { x: 0.10, y: 0.04, w: 0.80, h: 0.25 },
+      { x: 0.15, y: 0.08, w: 0.70, h: 0.20 },
+      { x: 0.05, y: 0.00, w: 0.90, h: 0.32 },
+      { x: 0.15, y: 0.15, w: 0.70, h: 0.16 }
+    ]
+    const results: Array<{ text: string; confidence: number }> = []
+    for (const crop of variants) {
+      const cropped = document.createElement('canvas')
+      const sx = Math.round(canvas.width * crop.x), sy = Math.round(canvas.height * crop.y)
+      const sw = Math.round(canvas.width * crop.w), sh = Math.round(canvas.height * crop.h)
+      cropped.width = sw * 3; cropped.height = sh * 3
+      const ctx = cropped.getContext('2d')
+      if (!ctx) continue
+      ctx.filter = 'grayscale(1) contrast(1.7)'
+      ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, cropped.width, cropped.height)
+      ctx.filter = 'none'
+      await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
+      const { data } = await ocrWorker.recognize(cropped)
+      const text = data.text.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim()
+      if (text.length >= 2 && /\\p{L}/u.test(text)) results.push({ text, confidence: data.confidence })
     }
+    results.sort((a, b) => (b.confidence + Math.min(b.text.length, 24)) - (a.confidence + Math.min(a.text.length, 24)))
+    const best = results[0]
+    ocrText.value = results.length ? results.map(r => `${r.text} (${Math.round(r.confidence)}%)`).join(' | ') : 'Nessun testo titolo leggibile nei ritagli.'
+    if (best) {
+      query.value = best.text
+      readingStatus.value = 'Suggerimento OCR locale: verifica/correggi il nome e premi Cerca nel catalogo.'
+    } else readingStatus.value = 'OCR locale non ha letto il titolo. Inserisci il nome manualmente.'
   } catch (e) {
-    readingStatus.value = 'Lettura automatica non riuscita. Puoi inserire il nome manualmente.'
+    readingStatus.value = 'Lettura OCR non riuscita. Puoi inserire il nome manualmente.'
     error.value = e instanceof Error ? e.message : 'Errore OCR'
   } finally { reading.value = false }
 }
