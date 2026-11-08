@@ -82,31 +82,34 @@ async function readCardText(canvas: HTMLCanvasElement) {
         else if (event.status === 'recognizing text') readingStatus.value = 'Analisi immagine…'
       } })
     }
-    // Focus OCR on the card title strip instead of the entire frame (which often
-    // picks up collector numbers, rules text, or neighboring cards).
-    const titleCrop = document.createElement('canvas')
-    const cropX = Math.round(canvas.width * 0.27)
-    const cropY = Math.round(canvas.height * 0.39)
-    const cropWidth = Math.round(canvas.width * 0.46)
-    const cropHeight = Math.round(canvas.height * 0.10)
-    titleCrop.width = cropWidth * 4
-    titleCrop.height = cropHeight * 4
-    const cropContext = titleCrop.getContext('2d')
+    // OCR the full card face (not a fixed title strip). The user can inspect
+    // the complete recognized text and edit the name before catalog lookup.
+    const cardCrop = document.createElement('canvas')
+    const cropX = Math.round(canvas.width * 0.18)
+    const cropY = Math.round(canvas.height * 0.08)
+    const cropWidth = Math.round(canvas.width * 0.64)
+    const cropHeight = Math.round(canvas.height * 0.84)
+    cardCrop.width = cropWidth * 2
+    cardCrop.height = cropHeight * 2
+    const cropContext = cardCrop.getContext('2d')
     if (!cropContext) throw new Error('Impossibile preparare il ritaglio OCR')
-    cropContext.filter = 'grayscale(1) contrast(1.7)'
-    cropContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, titleCrop.width, titleCrop.height)
+    cropContext.filter = 'grayscale(1) contrast(1.45)'
+    cropContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cardCrop.width, cardCrop.height)
     cropContext.filter = 'none'
-    await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
-    const { data } = await ocrWorker.recognize(titleCrop)
+    await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.AUTO, preserve_interword_spaces: '1' })
+    const { data } = await ocrWorker.recognize(cardCrop)
     ocrText.value = data.text.trim()
-    const lines = data.text.split(/\r?\n/).map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, '').trim()).filter(line => line.length >= 3)
-    const candidate = lines.sort((a, b) => b.length - a.length)[0]
+    const lines = data.text.split(/\\r?\\n/)
+      .map(line => line.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim())
+      .filter(line => line.length >= 3 && /\\p{L}/u.test(line) && !/^\\d+[\\/.-]?\\d*$/u.test(line))
+    // The card title is normally the first text line on the card face.
+    const candidate = lines[0]
     if (candidate) {
       query.value = candidate
-      readingStatus.value = 'Nome letto dalla fascia titolo: controlla il risultato e cerca nel catalogo.'
+      readingStatus.value = 'Testo letto dalla carta intera: verifica il nome e cerca nel catalogo.'
       await searchCards()
     } else {
-      readingStatus.value = 'Non ho letto la fascia titolo. Inserisci il nome manualmente e cerca nel catalogo.'
+      readingStatus.value = 'Non ho riconosciuto testo sulla carta. Inserisci il nome manualmente e cerca nel catalogo.'
     }
   } catch (e) {
     readingStatus.value = 'Lettura automatica non riuscita. Puoi comunque cercare il nome manualmente.'
