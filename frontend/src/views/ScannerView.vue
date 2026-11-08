@@ -129,35 +129,23 @@ async function readCardText(canvas: HTMLCanvasElement) {
     }
     // Evaluate several title-strip positions and image enhancements. Do not call
     // external AI services: recognition stays in-browser with Tesseract.
-    // Scan horizontal strips from top to bottom across the whole photograph.
-    // The physical card may occupy only the center of the camera frame; card-
-    // relative percentages were causing OCR to read its type/rules line.
-    const variants = Array.from({ length: 10 }, (_, index) => ({
-      x: 0.08, y: index * 0.075, w: 0.84, h: 0.13, row: index + 1
-    }))
-    const results: Array<{ text: string; confidence: number; crop: number; y: number; mode: string }> = []
-    for (let index = 0; index < variants.length; index++) {
-      const crop = variants[index]
-      const cropped = document.createElement('canvas')
-      const sx = Math.round(canvas.width * crop.x), sy = Math.round(canvas.height * crop.y)
-      const sw = Math.round(canvas.width * crop.w), sh = Math.round(canvas.height * crop.h)
-      cropped.width = sw * 3; cropped.height = sh * 3
-      const ctx = cropped.getContext('2d')
+    // Analyze only the manually selected title strip; no full-card band guessing.
+    const results: Array<{ text: string; confidence: number; mode: string }> = []
+    for (const mode of [PSM.SINGLE_LINE, PSM.SINGLE_BLOCK, PSM.SPARSE_TEXT]) {
+      const processed = document.createElement('canvas')
+      processed.width = canvas.width * 4; processed.height = canvas.height * 4
+      const ctx = processed.getContext('2d')
       if (!ctx) continue
-      ctx.filter = 'grayscale(1) contrast(1.8) brightness(1.06)'
-      ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, cropped.width, cropped.height)
+      ctx.filter = 'grayscale(1) contrast(1.7) brightness(1.08)'
+      ctx.drawImage(canvas, 0, 0, processed.width, processed.height)
       ctx.filter = 'none'
-      await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
-      const { data } = await ocrWorker.recognize(cropped)
-      const text = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
-      if (text.length >= 2 && /\p{L}/u.test(text)) results.push({ text, confidence: data.confidence, crop: crop.row, y: crop.y, mode: 'single-line' })
+      await ocrWorker.setParameters({ tessedit_pageseg_mode: mode, preserve_interword_spaces: '1' })
+      const { data } = await ocrWorker.recognize(processed)
+      const text = data.text.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim()
+      if (text.length >= 2 && /\\p{L}/u.test(text)) results.push({ text, confidence: data.confidence, mode: String(mode) })
     }
-    // Prefer confident readable text from higher bands; all detected bands remain
-    // visible in diagnostics so OCR behavior can be evaluated transparently.
-    results.sort((a, b) => (b.confidence + Math.max(0, 45 - b.y * 100) * 0.12) - (a.confidence + Math.max(0, 45 - a.y * 100) * 0.12))
-    ocrText.value = results.length
-      ? results.slice(0, 10).map(r => `Fascia ${r.crop} (y=${Math.round(r.y * 100)}%): ${r.text} (${Math.round(r.confidence)}%)`).join(' | ')
-      : 'Nessun testo leggibile nelle fasce orizzontali della foto.'
+    results.sort((a, b) => b.confidence - a.confidence)
+    ocrText.value = results.length ? results.map(r => `Titolo selezionato: ${r.text} (${Math.round(r.confidence)}%, modalità ${r.mode})`).join(' | ') : 'Nessun testo leggibile nell’area titolo selezionata.'
     const best = results[0]
     ocrText.value = results.length
       ? results.slice(0, 8).map(r => `Ritaglio ${r.crop}: ${r.text} (${Math.round(r.confidence)}%)`).join(' | ')
