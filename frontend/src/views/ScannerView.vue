@@ -70,10 +70,16 @@ function capture() {
   const canvas = document.createElement('canvas')
   const sourceWidth = video.value.videoWidth
   const sourceHeight = video.value.videoHeight
-  const scale = Math.min(1, 2048 / Math.max(sourceWidth, sourceHeight))
-  canvas.width = Math.round(sourceWidth * scale)
-  canvas.height = Math.round(sourceHeight * scale)
-  canvas.getContext('2d')?.drawImage(video.value, 0, 0, canvas.width, canvas.height)
+  // Capture a central region corresponding to the on-screen card guide.
+  // This avoids saving the whole wide camera frame (where the card appears tiny).
+  const cropWidth = Math.round(sourceWidth * 0.72)
+  const cropHeight = Math.round(sourceHeight * 0.90)
+  const sourceX = Math.round((sourceWidth - cropWidth) / 2)
+  const sourceY = Math.round((sourceHeight - cropHeight) / 2)
+  const scale = Math.min(1, 2048 / Math.max(cropWidth, cropHeight))
+  canvas.width = Math.round(cropWidth * scale)
+  canvas.height = Math.round(cropHeight * scale)
+  canvas.getContext('2d')?.drawImage(video.value, sourceX, sourceY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height)
   capturedImage.value = canvas.toDataURL('image/jpeg', 0.96)
   cropSelection.value = { x: 0, y: 0, w: 0, h: 0 }
   stopCamera()
