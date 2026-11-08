@@ -122,8 +122,8 @@ async function readCardText(canvas: HTMLCanvasElement) {
     await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
     const { data } = await ocrWorker.recognize(titleCrop)
     ocrText.value = data.text.trim()
-    const candidate = data.text.replace(/[^\\p{L}\\p{N}’' -]/gu, ' ').replace(/\\s+/g, ' ').trim()
-    if (candidate.length >= 3 && /\\p{L}/u.test(candidate)) {
+    const candidate = data.text.replace(/[^\p{L}\p{N}’' -]/gu, ' ').replace(/\s+/g, ' ').trim()
+    if (candidate.length >= 3 && /\p{L}/u.test(candidate)) {
       query.value = candidate
       readingStatus.value = 'Suggerimento OCR locale (da verificare): correggi il nome e cerca nel catalogo.'
     } else {
