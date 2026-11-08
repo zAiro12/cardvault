@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
-import { createWorker } from 'tesseract.js'
+import { createWorker, PSM } from 'tesseract.js'
 import { addInventory, autocompleteCards, createCard, getCardTraderMarketPrice, type CardSuggestion } from '../services/api'
 
 const video = ref<HTMLVideoElement | null>(null)
@@ -94,7 +94,7 @@ async function readCardText(canvas: HTMLCanvasElement) {
     const cropContext = titleCrop.getContext('2d')
     if (!cropContext) throw new Error('Impossibile preparare il ritaglio OCR')
     cropContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, titleCrop.width, titleCrop.height)
-    await ocrWorker.setParameters({ tessedit_pageseg_mode: '7', preserve_interword_spaces: '1' })
+    await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
     const { data } = await ocrWorker.recognize(titleCrop)
     ocrText.value = data.text.trim()
     const lines = data.text.split(/\r?\n/).map(line => line.replace(/[^\p{L}\p{N}’' -]/gu, '').trim()).filter(line => line.length >= 3)
