@@ -85,15 +85,17 @@ async function readCardText(canvas: HTMLCanvasElement) {
     // Focus OCR on the card title strip instead of the entire frame (which often
     // picks up collector numbers, rules text, or neighboring cards).
     const titleCrop = document.createElement('canvas')
-    const cropX = Math.round(canvas.width * 0.2)
-    const cropY = Math.round(canvas.height * 0.04)
-    const cropWidth = Math.round(canvas.width * 0.6)
-    const cropHeight = Math.round(canvas.height * 0.24)
-    titleCrop.width = cropWidth * 3
-    titleCrop.height = cropHeight * 3
+    const cropX = Math.round(canvas.width * 0.27)
+    const cropY = Math.round(canvas.height * 0.15)
+    const cropWidth = Math.round(canvas.width * 0.46)
+    const cropHeight = Math.round(canvas.height * 0.12)
+    titleCrop.width = cropWidth * 4
+    titleCrop.height = cropHeight * 4
     const cropContext = titleCrop.getContext('2d')
     if (!cropContext) throw new Error('Impossibile preparare il ritaglio OCR')
+    cropContext.filter = 'grayscale(1) contrast(1.7)'
     cropContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, titleCrop.width, titleCrop.height)
+    cropContext.filter = 'none'
     await ocrWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, preserve_interword_spaces: '1' })
     const { data } = await ocrWorker.recognize(titleCrop)
     ocrText.value = data.text.trim()
