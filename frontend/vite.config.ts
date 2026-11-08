@@ -2,8 +2,17 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 const buildDate = new Date()
-const pad = (value: number) => String(value).padStart(2, '0')
-const buildVersion = `${buildDate.getUTCFullYear()}.${pad(buildDate.getUTCMonth() + 1)}.${pad(buildDate.getUTCDate())}-${pad(buildDate.getUTCHours())}${pad(buildDate.getUTCMinutes())}`
+const italianTime = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/Rome',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+}).formatToParts(buildDate)
+const part = (type: string) => italianTime.find((item) => item.type === type)?.value ?? '00'
+const buildVersion = `v. ${part('year')}.${part('month')}.${part('day')}-${part('hour')}${part('minute')}`
 
 export default defineConfig({
   plugins: [vue()],
