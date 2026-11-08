@@ -62,7 +62,7 @@ onMounted(async () => {
       <h2 class="section-title">Azioni rapide</h2>
       <div class="quick-action-grid">
         <RouterLink class="quick-action green" to="/inventory"><i class="pi pi-plus-circle"></i><span>Aggiungi carta</span></RouterLink>
-        <RouterLink class="quick-action violet" to="/inventory"><i class="pi pi-qrcode"></i><span>Scansiona carta</span></RouterLink>
+        <RouterLink class="quick-action violet" to="/scanner"><i class="pi pi-qrcode"></i><span>Scansiona carta</span></RouterLink>
         <RouterLink class="quick-action blue" to="/reservations"><i class="pi pi-calendar"></i><span>Vedi prenotazioni</span></RouterLink>
         <RouterLink class="quick-action purple" to="/inventory"><i class="pi pi-sync"></i><span>Aggiorna prezzi</span></RouterLink>
       </div>
