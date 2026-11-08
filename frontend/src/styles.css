@@ -221,3 +221,7 @@ body{background:radial-gradient(ellipse at 85% 0%,#2a2148 0,transparent 32%),var
 .inventory-table tbody td{box-shadow:none!important}
 .table-wrap{border-color:color-mix(in srgb,var(--border) 55%,transparent)!important}
 .inventory-table thead th{border-bottom:1px solid color-mix(in srgb,var(--border) 65%,transparent)!important}
+
+
+/* Small, centered build version in the footer of every view. */
+.app-version{display:block;width:100%;text-align:center;font-size:10px;line-height:1.4;letter-spacing:.04em;color:var(--text-muted,#9293aa);opacity:.72;padding:8px 0 10px;margin-top:8px;}
