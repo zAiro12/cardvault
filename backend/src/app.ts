@@ -7,7 +7,7 @@ import { inventoryRouter } from './modules/inventory/inventory.routes.js'
 
 export const app = express()
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? true }))
-app.use(express.json({ limit: '9mb' }))
+app.use(express.json({ limit: '1mb' }))
 
 app.get('/', (_req, res) => {
   res.type('html').send(`<!doctype html>
